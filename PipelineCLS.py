@@ -349,7 +349,7 @@ for fold_num, (trf, vaf) in enumerate(pat_split, 0):
     'device': device,
     'batch_size': batch_size,
     'max_l': max_l,
-    'slide_index_dict': slide_index_dict
+    'inv_slide_index_dict': inv_slide_index_dict
     }
     
     y_true, y_pred, y_scores, partial_att_dict = val_loop(**val_params)
