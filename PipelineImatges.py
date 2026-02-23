@@ -193,8 +193,6 @@ slide_index_dict={word: index for index, word in enumerate(unique_slide_list)}
 inv_slide_index_dict = {v: k for k, v in slide_index_dict.items()}
 
 
-#### do it for each bootstraped dictionary
-
 fix_seeds(r_seed=123)
 
 #megapatches_to_use=boostrapped_megapatch_dicts[i]

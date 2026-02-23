@@ -41,10 +41,6 @@ fix_seeds(r_seed=123)
 
 ############# Data paths and indexes ###################
 
-#npz_path=r"full_patch_cls"
-#npz_path=r"cls_all_nw100_front"
-#npz_path=r"last_dim_pack"
-#npz_path=r"cls_FRONT"
 npz_path=r"..\Data\cls_ALL"
 npz_path=Path(npz_path)
 
@@ -224,8 +220,6 @@ unique_slide_list = list(set(slides))
 slide_index_dict={word: index for index, word in enumerate(unique_slide_list)}
 inv_slide_index_dict = {v: k for k, v in slide_index_dict.items()}
 
-
-#### do it for each bootstraped dictionary
 
 fix_seeds(r_seed=123)
 
