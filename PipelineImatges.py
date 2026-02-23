@@ -32,6 +32,7 @@ paths = []
 coords = []
 sections = []
 other_info = []
+affectation = []
 for hospital_path in imatges_of_2048_path.iterdir():
     if Path.is_dir(hospital_path):
         hospital = hospital_path.name
@@ -44,6 +45,7 @@ for hospital_path in imatges_of_2048_path.iterdir():
         metadata_center['blurriness'] = pd.to_numeric(metadata_center['blurriness'], errors='coerce')
         metadata_center['non_white_area'] = pd.to_numeric(metadata_center['non_white_area'], errors='coerce')
         metadata_center['window_min_value'] = pd.to_numeric(metadata_center['window_min_value'], errors='coerce')
+        metadata_center['affected_percentage'] = pd.to_numeric(metadata_center['affected_percentage'], errors='coerce')
         metadata_center['i'] = pd.to_numeric(metadata_center['i'], errors='coerce')
         metadata_center['j'] = pd.to_numeric(metadata_center['j'], errors='coerce')
         metadata_center.set_index(['hospital', 'patient_ID', 'slide_ID', 'i', 'j'], inplace=True)
@@ -67,6 +69,11 @@ for hospital_path in imatges_of_2048_path.iterdir():
 
                                 blurriness = metadata_center.loc[
                                     (hospital, patient, slide, int(y), int(x)), 'blurriness']
+
+                                afect = metadata_center.loc[
+                                    (hospital, patient, slide, int(y), int(x)), 'affected_percentage']
+
+                                affectation.append(afect)
 
                                 section = metadata_center.loc[(hospital, patient, slide, int(y), int(x)), 'section_ID']
                                 sections.append(section)
@@ -173,7 +180,8 @@ print(pd.Series(nx_label).value_counts())
 
 
 ## Intersecció entre imatges processades i metadades associades 370 a 230 pacients.
-patient_dict=patient_dict_builder(features, affectation, hospitals, patients, slides, coords, paths, pat_nx_dict, pat_histodata_dict)
+## Els features serien les imatges, per això hi guardem els paths.
+patient_dict=patient_dict_builder(paths, affectation, hospitals, patients, slides, coords, paths, pat_nx_dict, pat_histodata_dict)
 max_l=0
 for pat in patient_dict:
   patient_patch_size=len(patient_dict[pat]['megapatches'])

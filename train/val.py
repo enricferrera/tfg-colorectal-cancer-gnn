@@ -1,5 +1,6 @@
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
+from dataset.loaders import *
 
 
 def val_loop(data_dict, idxs, model_classifier, dataset_classifier, device, dataset_extractor=None, model_extractor=None, batch_size=12):
