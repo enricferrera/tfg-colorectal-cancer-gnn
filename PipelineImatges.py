@@ -105,8 +105,6 @@ print('------ filtering out bad patients...-------')
 #####################################################
 
 histopath=r"24_09_2025_pT1_CRC_CASOS_DEFINITIUS_AMB_ITEMS_HISTOLOGICS_fixed_N0s.xlsx"
-#cheat_sheet_csv_path=r"/home/lquerol/Desktop/Projectes_Nil/PATCHES_images_server_testing/temp.csv"
-
 
 histopath_df=pd.read_excel(histopath)
 
@@ -164,7 +162,7 @@ histo_data=histopath_df[["Budding", "LVI", "Degree", "VRM", "PI", "Depth", "HRM"
 #print("what: ", len(pat_histo))
 #print("doublew: ", pd.Series(patients).value_counts())
 
-## FILTREM PACIENTS amb diagnostic NX Baixem de 401 a 370.
+## FILTREM PACIENTS NX Baixem de 401 a 370.
 pat_nx_dict = {str(key): int(value) for key, value in zip(pat_histo, nx_label)}
 pat_histodata_dict = {str(key): value for key, value in zip(pat_histo, histo_data.values)}
 
@@ -175,7 +173,7 @@ print(pd.Series(nx_label).value_counts())
 
 
 ## Intersecció entre imatges processades i metadades associades 370 a 230 pacients.
-patient_dict=patient_dict_builder(features, affectation, hospitals, patients, slides, coords)
+patient_dict=patient_dict_builder(features, affectation, hospitals, patients, slides, coords, paths, pat_nx_dict, pat_histodata_dict)
 max_l=0
 for pat in patient_dict:
   patient_patch_size=len(patient_dict[pat]['megapatches'])

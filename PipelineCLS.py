@@ -41,11 +41,11 @@ fix_seeds(r_seed=123)
 
 ############# Data paths and indexes ###################
 
-npz_path=r"full_patch_cls"
+#npz_path=r"full_patch_cls"
 #npz_path=r"cls_all_nw100_front"
 #npz_path=r"last_dim_pack"
 #npz_path=r"cls_FRONT"
-npz_path=r"cls_ALL"
+npz_path=r"..\Data\cls_ALL"
 npz_path=Path(npz_path)
 
 affectation_flag=True#False#True
@@ -136,8 +136,6 @@ print('------ filtering out bad patients...-------')
 #####################################################
 
 histopath=r"24_09_2025_pT1_CRC_CASOS_DEFINITIUS_AMB_ITEMS_HISTOLOGICS_fixed_N0s.xlsx"
-#cheat_sheet_csv_path=r"/home/lquerol/Desktop/Projectes_Nil/PATCHES_images_server_testing/temp.csv"
-
 
 histopath_df=pd.read_excel(histopath)
 
