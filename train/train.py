@@ -1,10 +1,9 @@
-from torch.utils.data import DataLoader
 from dataset.loaders import *
 
 
 
 
-def train_loop(data_dict, idxs, model_classifier, dataset_classifier, loss_function_classifier, device, optimizer_classifier, model_extractor=None, dataset_extractor=None, loss_function_extractor=None, optimizer_extractor=None, epochs=30, minibatch_size=2, batch_size=12):
+def train_loop(data_dict, idxs, model_classifier, dataset_classifier, loss_function_classifier, device, optimizer_classifier, max_l, slide_index_dict, model_extractor=None, dataset_extractor=None, loss_function_extractor=None, optimizer_extractor=None, epochs=30, minibatch_size=2, batch_size=12):
 
     if model_extractor!=None:
         td =dataset_extractor(data_dict, idxs)
@@ -73,7 +72,7 @@ def train_loop(data_dict, idxs, model_classifier, dataset_classifier, loss_funct
     model_classifier.train()
     model_classifier.to(device)
     loss_function_classifier.to(device)
-    td =dataset_classifier(data_dict, idxs)
+    td =dataset_classifier(data_dict, idxs, max_l, slide_index_dict)
     trainloader_classifier = DataLoader(td, batch_size=batch_size, shuffle=True, pin_memory=False)
     del td
 

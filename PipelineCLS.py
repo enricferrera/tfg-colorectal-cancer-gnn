@@ -2,7 +2,7 @@
 """
 Created on 15/02/2026
 
-@author: Nil Arenós i Carles Sanchez
+@author: Nil Arenos i Carles Sanchez
 """
 ### Pipeline for CLS processing using graph neural networks
 ###################################################################
@@ -128,8 +128,8 @@ paths=np.concatenate(paths_list)
 print("Image Paths: ",len(paths))
 print('------ filtering out bad patients...-------')
 
-
-#####################################################
+########## Llegim les metadates de cada pacient #################################
+#################################################################################
 
 histopath=r"24_09_2025_pT1_CRC_CASOS_DEFINITIUS_AMB_ITEMS_HISTOLOGICS_fixed_N0s.xlsx"
 
@@ -317,6 +317,8 @@ for fold_num, (trf, vaf) in enumerate(pat_split, 0):
     'model_classifier': model,
     'dataset_extractor': AffectDataset,#AEDataset
     'dataset_classifier': AttnDataset, #AttnDataset_SLIDE
+    'max_l' : max_l,
+    'slide_index_dict' : slide_index_dict,
     'device': device,
     'loss_function_classifier': loss_fn_clf,
     'loss_function_extractor': loss_fn_ex,
@@ -345,7 +347,9 @@ for fold_num, (trf, vaf) in enumerate(pat_split, 0):
     'dataset_extractor': AffectDataset,
     'dataset_classifier': AttnDataset,#AttnDataset_SLIDE, #AttnDataset,
     'device': device,
-    'batch_size': batch_size
+    'batch_size': batch_size,
+    'max_l': max_l,
+    'slide_index_dict': slide_index_dict
     }
     
     y_true, y_pred, y_scores, partial_att_dict = val_loop(**val_params)

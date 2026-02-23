@@ -3,7 +3,7 @@ import torch.nn.functional as F
 from dataset.loaders import *
 
 
-def val_loop(data_dict, idxs, model_classifier, dataset_classifier, device, dataset_extractor=None, model_extractor=None, batch_size=12):
+def val_loop(data_dict, idxs, model_classifier, dataset_classifier, device, max_l, inv_slide_index_dict, dataset_extractor=None, model_extractor=None, batch_size=12):
 
     if model_extractor!=None:
         vd =dataset_extractor(data_dict, idxs)
@@ -91,7 +91,7 @@ def val_loop(data_dict, idxs, model_classifier, dataset_classifier, device, data
                 pred = probs.argmax(dim=1).cpu().tolist()[i]
                 pred = float(pred)
                 n_pad = n_padding_batch[i]
-                n_pad = mx_patches - n_pad
+                n_pad = max_l - n_pad
 
                 slide_ds = slds_batch[i]
                 attention_matrixs = attention_scores[i].cpu()

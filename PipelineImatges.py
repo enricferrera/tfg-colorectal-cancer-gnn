@@ -2,7 +2,7 @@
 """
 Created on 15/02/2026
 
-@author: Nil Arenós i Carles Sanchez
+@author: Nil Arenos i Carles Sanchez
 """
 ### Pipeline for Image processing using Autoencoders
 ###################################################################
@@ -109,7 +109,8 @@ print("Image Paths: ",len(paths))
 print('------ filtering out bad patients...-------')
 
 
-#####################################################
+########## Llegim les metadates de cada pacient #################################
+#################################################################################
 
 histopath=r"24_09_2025_pT1_CRC_CASOS_DEFINITIUS_AMB_ITEMS_HISTOLOGICS_fixed_N0s.xlsx"
 
@@ -288,45 +289,47 @@ for fold_num, (trf, vaf) in enumerate(pat_split, 0):
     
     
     ##### TRAINING ##############
-    
-    
-    fold_losses=[]
-    train_params={
-    'data_dict': bt_dict,
-    'idxs': patient_list_train, 
-    'model_extractor': None,#affectation_extractor,
-    'model_classifier': model,
-    'dataset_extractor': AffectDataset,#AEDataset
-    'dataset_classifier': AttnDataset, #AttnDataset_SLIDE
-    'device': device,
-    'loss_function_classifier': loss_fn_clf,
-    'loss_function_extractor': loss_fn_ex,
-    'optimizer_classifier': opt,
-    'optimizer_extractor': opt_extractor,
-    'epochs': epochs,
-    'minibatch_size': minibatch_size,
-    'batch_size': batch_size
+
+    fold_losses = []
+    train_params = {
+        'data_dict': bt_dict,
+        'idxs': patient_list_train,
+        'model_extractor': None,  # affectation_extractor,
+        'model_classifier': model,
+        'dataset_extractor': AffectDataset,  # AEDataset
+        'dataset_classifier': AttnDataset,  # AttnDataset_SLIDE
+        'max_l': max_l,
+        'slide_index_dict': slide_index_dict,
+        'device': device,
+        'loss_function_classifier': loss_fn_clf,
+        'loss_function_extractor': loss_fn_ex,
+        'optimizer_classifier': opt,
+        'optimizer_extractor': opt_extractor,
+        'epochs': epochs,
+        'minibatch_size': minibatch_size,
+        'batch_size': batch_size
     }
-    
-    
-    #affectation_extractor, model = train_loop(**train_params)
+
+    # affectation_extractor, model = train_loop(**train_params)
     trained_models = train_loop(**train_params)
-    if len(trained_models)==2:
-      affectation_extractor, model= trained_models
+    if len(trained_models) == 2:
+        affectation_extractor, model = trained_models
     else:
-      model= trained_models[0]
-    
+        model = trained_models[0]
+
     ##### VALIDATION ##########
-    
-    val_params={
-    'data_dict': bt_dict,
-    'idxs': patient_list_val, 
-    'model_extractor': None,#affectation_extractor,
-    'model_classifier': model,
-    'dataset_extractor': AffectDataset,
-    'dataset_classifier': AttnDataset,#AttnDataset_SLIDE, #AttnDataset,
-    'device': device,
-    'batch_size': batch_size
+
+    val_params = {
+        'data_dict': bt_dict,
+        'idxs': patient_list_val,
+        'model_extractor': None,  # affectation_extractor,
+        'model_classifier': model,
+        'dataset_extractor': AffectDataset,
+        'dataset_classifier': AttnDataset,  # AttnDataset_SLIDE, #AttnDataset,
+        'device': device,
+        'batch_size': batch_size,
+        'max_l': max_l,
+        'inv_slide_index_dict': inv_slide_index_dict
     }
     
     y_true, y_pred, y_scores, partial_att_dict = val_loop(**val_params)

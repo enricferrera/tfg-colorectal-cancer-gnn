@@ -155,7 +155,7 @@ class AEDataset(torch.utils.data.Dataset):
 
         return x, y, extra_info# , histoda
 
-###### DATASET FET AFECTACIO i SOBRE CLS
+###### DATASET FET PER AFECTACIO i SOBRE CLS
 class AffectDataset(torch.utils.data.Dataset):
     def __init__(self, pat_dict, idxs, ):
 
@@ -215,7 +215,7 @@ class AffectDataset(torch.utils.data.Dataset):
 
 ##### DATASET CLS
 class AttnDataset(torch.utils.data.Dataset):
-    def __init__(self, pat_dict, idxs, ):
+    def __init__(self, pat_dict, idxs, max_l, slide_index_dict, ):
 
         # self.pat_dict=pat_dict.copy()
         temp_pat_dict={}
@@ -226,6 +226,8 @@ class AttnDataset(torch.utils.data.Dataset):
 
         self.pat_dict=temp_pat_dict
         self.patient_dict_list=list(self.pat_dict.keys())
+        self.max_l=max_l  # maxim de mostres per un pacient
+        self.slide_index_dict=slide_index_dict
 
 
     def __len__(self):
@@ -242,8 +244,6 @@ class AttnDataset(torch.utils.data.Dataset):
 
         x=torch.stack(x, dim=0)
 
-        # self.max_l=800
-        self.max_l=max_l  # maxim de mostres per un pacient
 
         n_padding=self.max_l-x.shape[0]  # completar els pacients amb menys mostres
 
@@ -264,7 +264,7 @@ class AttnDataset(torch.utils.data.Dataset):
         coords=np.concatenate((coords,zero_pad), axis=0)
 
         #### padding slides #####
-        slides_n=[slide_index_dict[self.pat_dict[selc_patient]['megapatches'][k]['slide']] for k
+        slides_n=[self.slide_index_dict[self.pat_dict[selc_patient]['megapatches'][k]['slide']] for k
                     in range(0, len(self.pat_dict[selc_patient]['megapatches']))]
 
 
