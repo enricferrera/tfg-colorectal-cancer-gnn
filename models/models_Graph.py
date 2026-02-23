@@ -19,25 +19,16 @@ from torch_geometric.utils import to_dense_batch, to_dense_adj
 # -----------------------
 # CONFIGURATION AND DATA LOADING
 # LOAD image and labels
-data = np.load(r'D:\DOCENCIA\TFG\TFG 2025\PauMarti\Code\LargetissueDades_48_Norm.npz', allow_pickle=True)
+data = np.load(r'D:\CNN\ColonCancer\HistopatDiagnosis\TFGPau2025\Code\LargetissueDades_48_Norm.npz', allow_pickle=True)
 X_no_hosp = data['X_no_hosp']; y_no_hosp = data['y_no_hosp']; PatID_no_hosp = data['PatID_no_hosp']
 X_hosp    = data['X_hosp'];    y_hosp    = data['y_hosp']
-
-# LOAD Features
-data = np.load(r'D:\DOCENCIA\TFG\TFG 2025\PauMarti\Code\DBLarge_FeatMatNew_norm.npz', allow_pickle=True)
+#
+# # LOAD Features
+data = np.load(r'D:\CNN\ColonCancer\HistopatDiagnosis\TFGPau2025\Code\DBLarge_FeatMatNew_norm.npz', allow_pickle=True)
 f_no=data['features_list']
 a_no=data['attn_matrices']
 
-# np.savez(
-#     'D:\DOCENCIA\TFG\TFG 2025\PauMarti\Code\DBLarge_FeatMatNew_Reduit2_norm.npz',
-#     features_list=data['features_list'],
-#     adj_list=data['adj_list'],
-#     adj_mean_list=data['adj_mean_list'],
-# )
-#
-# data = np.load(r'D:\DOCENCIA\TFG\TFG 2025\PauMarti\Code\DBLarge_FeatMatNew_Reduit_norm.npz', allow_pickle=True)
-# f_h=data['features_list_ho']
-# a_h=data['attn_matrices_ho']
+
 
 class GATWeight_batch(torch.nn.Module):
     def __init__(self, in_ch, hidden_ch, out_ch,num_clusters1=8, num_clusters2=4, heads=1, use_edge_attr=True, threshold=0.0):

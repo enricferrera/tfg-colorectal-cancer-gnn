@@ -1,285 +1,83 @@
+# -*- coding: utf-8 -*-
+"""
+Created on 15/02/2026
 
-import os
-from pathlib import Path
-import numpy as np
-from random import shuffle
+@author: Nil Arenós i Carles Sanchez
+"""
+### Pipeline for Image processing using Autoencoders
+###################################################################
+
+
 import pickle
 import random
-import torch
-import torch.nn.functional as F
-from torch_geometric.nn import GATConv, global_mean_pool,global_max_pool, global_add_pool
-from torchvision import transforms
-import torch.nn as nn
-import torchvision.models as models
-
-from sklearn.model_selection import StratifiedGroupKFold,train_test_split
-from torch.utils.data import DataLoader
-
-from sklearn.metrics import recall_score, precision_score, f1_score, roc_auc_score
-
-import matplotlib.pyplot as plt
-import gc
-from PIL import Image
-
-import seaborn as sns
+from pathlib import Path
 import pandas as pd
-import csv
-import os
-import copy
-import models_attention
+from sklearn.metrics import recall_score, precision_score, f1_score, roc_auc_score
+from models import models_attention
+from dataset.loaders import *
+from train.train import *
+from train.val import *
 
-
-##############################33
+#################################
 #################################
 
-  
-def train_loop(data_dict, idxs, model_classifier, dataset_classifier, loss_function_classifier, device, optimizer_classifier, model_extractor=None, dataset_extractor=None, loss_function_extractor=None, optimizer_extractor=None, epochs=30, minibatch_size=2, batch_size=12):
-  
-  if model_extractor!=None:
-    td=dataset_extractor(data_dict, idxs)
-    ppp=len(td)
-    trainloader_extractor = DataLoader(td, batch_size=batch_size, shuffle=True, pin_memory=False)
-    del td
-    model_extractor.to(device)
-    model_extractor.train()
-    model_classifier.eval()
-    loss_function_extractor.to(device)
-    
-    for epoch in range(epochs):
-      
-      batch_counter = 0
-      
-      last_dims, affectation_rec, hospitals_rec, patients_rec, slides_rec, coords_rec, = [], [], [], [], [], []
-      
-      for b in trainloader_extractor:
-          x, y, extra_info = b
-          
-          #Extra info deglossed:
-          hosps_batch = extra_info['hospital']
-          pats_batch = extra_info['patient']
-          slds_batch = extra_info['slides']
-          coords_batch = extra_info['coords']
-          affectation_batch = extra_info['coords']
-          
-          
-          output, last_dim = model_extractor(x.to(device))
-          
-          loss_ex = loss_function_extractor(output.float(), y.long().to(device))
-          #loss_ex = loss_ex / minibatch_size  # Scale loss
-          loss_ex.backward()
-          
-          
-          batch_counter +=1
-          if batch_counter >= minibatch_size:
-            optimizer_extractor.step()
-            optimizer_extractor.zero_grad()
-            batch_counter = 0
-          
-          #losses.append(loss.item())
-          last_dim_cpu=last_dim.cpu().detach()
-          
-          last_dims.extend(last_dim_cpu)
-          affectation_rec.extend(affectation_batch)
-          hospitals_rec.extend(hosps_batch)
-          patients_rec.extend(pats_batch)
-          slides_rec.extend(slds_batch)
-          coords_rec.extend(coords_batch)
-          
-    
-    rebuild_params={
-    'features': last_dims,
-    'affectation': affectation_rec,
-    'hospitals': hospitals_rec,
-    'patients': patients_rec,
-    'slides': slides_rec,
-    'coords': coords_rec,
-    }
-    
-    data_dict=patient_dict_builder(**rebuild_params)   
-    
-    model_extractor.eval()
-  
-  model_classifier.train()
-  model_classifier.to(device)
-  loss_function_classifier.to(device)
-  td=dataset_classifier(data_dict, idxs)
-  trainloader_classifier = DataLoader(td, batch_size=batch_size, shuffle=True, pin_memory=False)
-  del td
-  
-  
-  for epoch in range(epochs):
-  
-    batch_counter = 0
-    for b in trainloader_classifier:
-        x, y, extra_info, histodata = b
-        
-        n_padding_batch=extra_info['n_padding']
-        output, _ = model_classifier(x.to(device), n_padding=n_padding_batch, histodata=None)
-        
-        loss_clf = loss_function_classifier(output, y.long().to(device))
-        loss_clf = loss_clf / minibatch_size  # Scale loss
-        loss_clf.backward()
-        
-        batch_counter +=1
-        if batch_counter >= minibatch_size:
-          optimizer_classifier.step()
-          optimizer_classifier.zero_grad()
-          batch_counter = 0
-  
-  if model_extractor!=None:
-    trained_models=[model_extractor, model_classifier]
-    
-  else:
-    trained_models=[model_classifier]
-  return trained_models
+#Directori del servidor on es troben les imatges
+imatges_of_2048_path = r"Z:\Database\MedicalImaging\HistoPatologia\ColonCancer\PrivateBD\PEARSON\Images\Patches_2048"
+imatges_of_2048_path = Path(imatges_of_2048_path)
 
-def val_loop(data_dict, idxs, model_classifier, dataset_classifier, device, dataset_extractor=None, model_extractor=None, batch_size=12):
-  
-  if model_extractor!=None:
-    vd=dataset_extractor(data_dict, idxs)
-    valoader_extractor = DataLoader(vd, batch_size=batch_size, shuffle=True, pin_memory=False)
-    del vd
-    model_extractor.to(device)
-    model_extractor.eval()
-    
-    
-    last_dims, affectation_rec, hospitals_rec, patients_rec, slides_rec, coords_rec, n_padding_rec = [], [], [], [], [], [], []
-    for b in valoader_extractor:
-        x, y, extra_info = b
-        
-        #Extra info deglossed:
-        hosps_batch = extra_info['hospital']
-        pats_batch = extra_info['patient']
-        slds_batch = extra_info['slides']
-        coords_batch = extra_info['coords']
-        affectation_batch = extra_info['coords']
-        
-        
-        output, last_dim = model_extractor(x.to(device))
-        
-        #losses.append(loss.item())
-        last_dim_cpu=last_dim.cpu().detach()
-        last_dims.extend(last_dim_cpu)
-        affectation_rec.extend(affectation_batch)
-        hospitals_rec.extend(hosps_batch)
-        patients_rec.extend(pats_batch)
-        slides_rec.extend(slds_batch)
-        coords_rec.extend(coords_batch)
-        
-    
-    rebuild_params={
-    'features': last_dims,
-    'affectation': affectation_rec,
-    'hospitals': hospitals_rec,
-    'patients': patients_rec,
-    'slides': slides_rec,
-    'coords': coords_rec,
-    }
-  
-    data_dict=patient_dict_builder(**rebuild_params)   
-    
-    
-  
-  
-  model_classifier.to(device)
-  model_classifier.eval()
-  
-  vd=dataset_classifier(data_dict, idxs)
-  
-  valoader_classifier = DataLoader(vd, batch_size=batch_size, shuffle=True, pin_memory=False)
-  del vd
-  
-  
-  attention_output={}
-  
-  y_true, y_pred, y_scores = [], [], []
-  
-  
-  for b in valoader_classifier:
-      x, y, extra_info, histodata = b
-      
-      #Extra info deglossed:
-      hosps_batch = extra_info['hospital']
-      pats_batch = extra_info['patient']
-      slds_batch = extra_info['slides']
-      coords_batch = extra_info['coords']
-      affectation_batch = extra_info['coords']
-      n_padding_batch = extra_info['n_padding']
-      
-      output, attention_scores = model_classifier(x.to(device), n_padding=n_padding_batch, histodata=None)
-      
-      probs = F.softmax(output, dim=1).cpu()
-      
-      y_true.extend(y.cpu().tolist())
-      
-      
-      y_pred.extend(probs.argmax(dim=1).cpu().tolist())
-      y_scores.extend(probs[:,1].cpu().tolist())     
-      
-      #storing attention
-      for i, hospi in enumerate(hosps_batch):
-                  
-                  hosp=hosps_batch[i]
-                  pat=pats_batch[i]
-                  true=y[i].float().item()
-                  label_p=true
-                  st_probs=probs.cpu().tolist()[i]
-                  pred=probs.argmax(dim=1).cpu().tolist()[i]
-                  pred=float(pred)
-                  n_pad=n_padding_batch[i]
-                  n_pad=mx_patches-n_pad
-                  
-                  
-                  slide_ds= slds_batch[i]
-                  attention_matrixs=attention_scores[i].cpu()
-                  coord_ds=coords_batch[i].detach().cpu()
-                  x_ds=x[i].detach().cpu()
-                  
-                  attention_matrixs=attention_matrixs[:n_pad]
-                  
-                  coord_ds=coord_ds[:n_pad]
-                  
-                  slide_ds=slide_ds[:n_pad]
-                  x_ds=x_ds[:n_pad]
-                  
-                  for s, slide_s in enumerate(slide_ds):
-                      slide=slide_ds[s]
-                      slide=slide.item()
-                      slide=inv_slide_index_dict[slide]
-                      coord_d=coord_ds[s].numpy()
-                      features=x_ds[s].numpy()
-                      
-                      #attention_matrix=attention_matrixs[0][s].detach().item() #Zero [0] so it doesnt fuck up everything
-                      
-                      attention_matrix_detached=attention_matrixs.detach()
-                      attention_matrix_heads={}
-                      for a, att_head in enumerate(attention_matrix_detached):
-                        attention_matrix_heads[a]=attention_matrix_detached[a][s]
-                      
-                      if hosp not in attention_output:
-                          attention_output[hosp]={}
-            
-                      if pat not in attention_output[hosp]:
-                          attention_output[hosp][pat]={}
-                      
-                      
-                      if slide not in attention_output[hosp][pat]:
-                          attention_output[hosp][pat][slide]=[]
-                      
-                      attention_output[hosp][pat]['scores']=st_probs
-                      attention_output[hosp][pat]['label']=true
-                      attention_output[hosp][pat]['predicted']=pred
-                      attention_output[hosp][pat][slide].append((features, coord_d, attention_matrix_heads))
-                
-  return y_true, y_pred, y_scores, attention_output
+hospitals = []
+patients = []
+slides = []
+paths = []
+coords = []
+sections = []
+other_info = []
+for hospital_path in imatges_of_2048_path.iterdir():
+    if Path.is_dir(hospital_path):
+        hospital = hospital_path.name
+
+        metadata_center_p = f"Z:\Database\MedicalImaging\HistoPatologia\ColonCancer\PrivateBD\PEARSON\Images/Patches_2048/{hospital}/metadata_{hospital}.csv"
+
+        metadata_center = pd.read_csv(metadata_center_p, dtype=str)
+        # metadata_center = metadata_center.rename(columns={'patient_ID': 'slide'})
+
+        metadata_center['blurriness'] = pd.to_numeric(metadata_center['blurriness'], errors='coerce')
+        metadata_center['non_white_area'] = pd.to_numeric(metadata_center['non_white_area'], errors='coerce')
+        metadata_center['window_min_value'] = pd.to_numeric(metadata_center['window_min_value'], errors='coerce')
+        metadata_center['i'] = pd.to_numeric(metadata_center['i'], errors='coerce')
+        metadata_center['j'] = pd.to_numeric(metadata_center['j'], errors='coerce')
+        metadata_center.set_index(['hospital', 'patient_ID', 'slide_ID', 'i', 'j'], inplace=True)
+
+        for patient_path in hospital_path.iterdir():
+            if Path.is_dir(patient_path):
+                patient = patient_path.name
+
+                for slide_path in patient_path.iterdir():
+                    if Path.is_dir(slide_path):
+                        slide = slide_path.name
+                        for image in slide_path.iterdir():
+                            if image.name.endswith(".jpg"):
+                                ## hospital, patient, slide, x, y = image.name.split('_') ##
+                                _, _, _, x, y = image.stem.split('_')
+                                hospitals.append(hospital)
+                                patients.append(patient)
+                                paths.append(image)
+                                coords.append((x, y))
+                                slides.append(slide)
+
+                                blurriness = metadata_center.loc[
+                                    (hospital, patient, slide, int(y), int(x)), 'blurriness']
+
+                                section = metadata_center.loc[(hospital, patient, slide, int(y), int(x)), 'section_ID']
+                                sections.append(section)
+
+                                other_info.append(blurriness)
   
 
 
-############################3
-#############################
-#os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
-#------FIXED SEEDS-------
+
+#------FIXED SEEDS for reproducibility-------
 r_seed=123
 
 def fix_seeds(r_seed=123):
@@ -295,309 +93,11 @@ def fix_seeds(r_seed=123):
 # LOAD image and labels
 fix_seeds(r_seed=123)
 
-########################################## AUTOENCODER IMATGES ############
-class AEDataset(torch.utils.data.Dataset):
-    def __init__(self, pat_dict, idxs, ):
-      
-      #self.pat_dict=pat_dict.copy()
-      temp_pat_dict={}
-      #self.pat_dict = copy.deepcopy(pat_dict)
-      for pat in list(pat_dict.keys()):
-        if pat in idxs:
-          temp_pat_dict[pat]=pat_dict[pat]
-      
-      self.pat_dict=temp_pat_dict
-      self.patient_dict_list=list(self.pat_dict.keys())
-      
-      all_megapatches=[]
-      for pat in self.patient_dict_list:
-        all_megapatches.extend(self.pat_dict[pat]['megapatches'])
-      
-
-      self.all_megapatches=all_megapatches
-      
-    def __len__(self):
-        return len(self.all_megapatches)
-        
-    def __getitem__(self, i):
-      
-      selc_megapatch=self.all_megapatches[i]
-      
-      image_paths=selc_megapatch['paths']
-      #print(image_paths[0])
-      ##############
-      '''
-      temps_paths=[]
-      for i_path in image_paths:
-        
-        i_path=i_path.replace("\\","/")
-        image_name=os.path.split(i_path)[-1]
-        temps_paths.append(image_name)
-        pass
-      
-      image_paths=temps_paths
-      ##############
-      '''
-      patches = [transforms.ToTensor()(Image.open(p).convert("RGB"))
-                   for p in image_paths]
-        
-      patches = torch.stack(patches)
-      fm=jigsaw_to_image(patches)
-      x=fm
-      
-      
-    
-      ### if training on affectation #######
-      
-      y=selc_megapatch['affectation_label']
-      
-      
-      
-      extra_info= {
-      'hospital': selc_megapatch['hospital'],
-      'patient': selc_megapatch['patient'],
-      'slides': selc_megapatch['slide'],
-      'coords': selc_megapatch['coords'],  
-      }
-      
-            
-      return x, y, extra_info#, histodata
-
-###### DATASET FET AFECTACIO i SOBRE CLS
-class AffectDataset(torch.utils.data.Dataset):
-    def __init__(self, pat_dict, idxs, ):
-      
-      #self.pat_dict=pat_dict.copy()
-      temp_pat_dict={}
-      #self.pat_dict = copy.deepcopy(pat_dict)
-      for pat in list(pat_dict.keys()):
-        if pat in idxs:
-          temp_pat_dict[pat]=pat_dict[pat]
-      
-      self.pat_dict=temp_pat_dict
-      self.patient_dict_list=list(self.pat_dict.keys())
-      
-      all_megapatches=[]
-      for pat in self.patient_dict_list:
-        all_megapatches.extend(self.pat_dict[pat]['megapatches'])
-      
-      patch_selection=[]
-      for megapatch in all_megapatches:
-        affect_percent = megapatch['affectation']
-        if affect_percent>=0.75:
-          megapatch['affectation_label']=1
-        elif affect_percent<=0.25:
-          megapatch['affectation_label']=0
-        else:
-          continue
-        patch_selection.append(megapatch)
-      
-      self.all_megapatches=patch_selection
-      
-    def __len__(self):
-        return len(self.all_megapatches)
-        
-    def __getitem__(self, i):
-      
-      selc_megapatch=self.all_megapatches[i]
-      
-      
-      x=selc_megapatch['features']
-      
-    
-      ### if training on affectation #######
-      
-      y=selc_megapatch['affectation_label']
-      
-      
-      
-      extra_info= {
-      'hospital': selc_megapatch['hospital'],
-      'patient': selc_megapatch['patient'],
-      'slides': selc_megapatch['slide'],
-      'coords': selc_megapatch['coords'],  
-      }
-      
-            
-      return x, y, extra_info#, histodata
-
-##### DATASET CLS
-class AttnDataset(torch.utils.data.Dataset):
-    def __init__(self, pat_dict, idxs, ):
-      
-      #self.pat_dict=pat_dict.copy()
-      temp_pat_dict={}
-      #self.pat_dict = copy.deepcopy(pat_dict)
-      for pat in list(pat_dict.keys()):
-        if pat in idxs:
-          temp_pat_dict[pat]=pat_dict[pat]
-      
-      self.pat_dict=temp_pat_dict
-      self.patient_dict_list=list(self.pat_dict.keys())
-      
-      
-    def __len__(self):
-        return len(self.pat_dict)
-        
-    def __getitem__(self, i):
-      
-      selc_patient=self.patient_dict_list[i]
-      
-      
-      x=[]
-      for megapatch in self.pat_dict[selc_patient]['megapatches']:
-        x.append(megapatch['features'])
-      
-      x=torch.stack(x, dim=0)
-      
-      #self.max_l=800
-      self.max_l=max_l  #maxim de mostres per un pacient
-      
-      n_padding=self.max_l-x.shape[0]  #completar els pacients amb menys mostres
-      
-      
-      y=self.pat_dict[selc_patient]['label']
-      histodata=self.pat_dict[selc_patient]['histodata']
-      #### padding coords #####
-      coords=[]
-      for megapatch in self.pat_dict[selc_patient]['megapatches']:
-        coords.append(megapatch['coords'])
-        
-      
-      coords=np.stack(coords, axis=0)
-      
-      
-      zero_pad=np.zeros((self.max_l-coords.shape[0], 2))
-      
-      coords=np.concatenate((coords,zero_pad), axis=0)
-      
-      #### padding slides #####
-      slides_n=[slide_index_dict[self.pat_dict[selc_patient]['megapatches'][k]['slide']] for k in range(0, len(self.pat_dict[selc_patient]['megapatches']))]
-      
-      
-      
-      slides_padded =  slides_n + [000000] * (self.max_l-len(slides_n))
-      slides_padded=np.array(slides_padded)
-      
-      extra_info= {
-      'hospital': self.pat_dict[selc_patient]['megapatches'][0]['hospital'],
-      'patient': self.pat_dict[selc_patient]['megapatches'][0]['patient'],
-      'slides': slides_padded,
-      'coords': coords,
-      'n_padding': n_padding,
-      
-      }
-      
-      
-      ## Padding of the tensor
-      x=F.pad(x, (0, 0, 0, n_padding), mode='constant', value=0)
-      
-      '''
-      #Boostrapping
-      if n_padding>0:
-        indiv_tensor_list=list(torch.tensor_split(x, x.shape[0]))
-        
-        bootstraped_tensor_list=[random.choice(indiv_tensor_list) for _ in range(n_padding)]
-        
-        bootstraped_tensor_list=torch.stack(bootstraped_tensor_list, dim=0)
-        bootstraped_tensor_list=bootstraped_tensor_list.squeeze(1)
-        
-        x=torch.concat((x, bootstraped_tensor_list), dim=0) 
-      
-      '''     
-      return x, y, extra_info, histodata
-      
-
-############# Data paths and indexes ###################
-
-npz_path=r"full_patch_cls"
-#npz_path=r"cls_all_nw100_front"
-#npz_path=r"last_dim_pack"
-#npz_path=r"cls_FRONT"
-npz_path=r"cls_ALL"
-npz_path=Path(npz_path)
-
-affectation_flag=True#False#True
-
-tensors_list=[]
-y_list=[]
-patients_list=[]
-hosps_list=[]
-slides_list=[]
-coords_list=[]
-paths_list=[]
-for i, link in enumerate(npz_path.iterdir()):
-  
-  data = np.load(link, allow_pickle=True)
-  
-  features=data['embeddingCLS']
-  features=torch.from_numpy(features)
-  
-  affectation=data['label_list']
-  affectation=torch.from_numpy(affectation)
-  
-  patients=data['patient_list']
-  
-  hospitals=data['hospitals']
-  slides=data['slides']
-  coords=data['coords']
-  paths=data['paths']
-  
-  tensors_list.append(features)
-  y_list.append(affectation)
-  
-  patients_list.append(patients)
-  hosps_list.append(hospitals)
-  slides_list.append(slides)
-  paths_list.append(paths)
-  
-  
-  #mini_coords_list=[]
-  for coord_pack in coords:
-    coords_list.append(coord_pack[0])
-    #mini_coords_list.append(coord_pack[0])
-  #coords_list.append(mini_coords_list)
-  '''
-  print("------ Array info ----------")
-  print(f"size of CLS: {len(features)}")
-  
-  print(f"size of affectations: {len(affectation)}")
-  print(f"size of patients: {len(patients)}")
-  print(f"size of hospitals: {len(hospitals)}")
-  print(f"size of slides: {len(slides)}")
-  print(f"size of coords: {len(coords)}")
-  print(f"size of coords: {len(paths)}")
-  '''
-  
-features=torch.cat(tensors_list, dim=0)
-print("Features: ",features.shape)
-
-affectation=torch.cat(y_list, dim=0)
-print("Y: ",affectation.shape)
-
-patients=np.concatenate(patients_list)
-
-###
-#PatID_no_hosp=np.concatenate(hosps_list)
-###
 
 print("Patients: ", np.unique(patients).shape[0])
-
-hospitals=np.concatenate(hosps_list)
 print("Hospitals: ",len(np.unique(hospitals)))
-
-slides=np.concatenate(slides_list)
 print("Slides: ",len(np.unique(slides)))
-
-slides=np.concatenate(slides_list)
-print("Patches: ",features.shape[0])
-
-
-coords=np.stack(coords_list, axis=0)
 print("Coords: ",len(coords))
-
-
-paths=np.concatenate(paths_list)
 print("Image Paths: ",len(paths))
 print('------ filtering out bad patients...-------')
 
@@ -664,7 +164,7 @@ histo_data=histopath_df[["Budding", "LVI", "Degree", "VRM", "PI", "Depth", "HRM"
 #print("what: ", len(pat_histo))
 #print("doublew: ", pd.Series(patients).value_counts())
 
-## FILTREM PACIENTS NX Baixem de 401 a 370.
+## FILTREM PACIENTS amb diagnostic NX Baixem de 401 a 370.
 pat_nx_dict = {str(key): int(value) for key, value in zip(pat_histo, nx_label)}
 pat_histodata_dict = {str(key): value for key, value in zip(pat_histo, histo_data.values)}
 
@@ -672,77 +172,10 @@ print("//////////////////////////////////////////////////////////")
 print(pd.Series(nx_label).value_counts())
 #################
 
-#Funció per muntar la imatge del megapatch donades les imatges dels patches
-def jigsaw_to_image(x, grid_size=None, patch_size=None):
-    
-    n_patches, channels, h, w =x.shape # [N, c, 256, 256]
-    
-    if grid_size==None:
-        grid_n_side=int(n_patches**0.5)
-    if patch_size==None:
-        patch_size=256
-    
-    #x=x.permute(0, 3, 1, 2) # [9, c, 256, 256]
-    x=x.view(grid_n_side, grid_n_side, channels, h, w) # [n, n, c, 256, 256]
-    x = x.permute(2, 1, 3, 0, 4).contiguous()  # shape: [n, n, w, c, h]
-    final_image = x.view(channels, grid_n_side*patch_size, grid_n_side*patch_size)
-    final_image = transforms.ToPILImage()(final_image)
-    # img.show(final_image)
-    return  final_image
 
-
-def patient_dict_builder(features, affectation, hospitals, patients, slides, coords):
-  patients_not_found=set()
-  patient_dict={}
-  for i, datapoint in enumerate(patients):
-      hosp=hospitals[i]
-      pat=patients[i]
-      
-      if pat in pat_nx_dict:
-        
-        label= int(pat_nx_dict[pat])
-        histodata=np.array(pat_histodata_dict[pat]).astype(float)
-        
-        affect_percent=affectation[i]
-        afect_label=affect_percent
-        
-        
-        ######################################
-        
-        megapatch_dict={
-        'hospital': hosp,
-        'patient': pat,
-        'affectation': afect_label,
-        'features': features[i],
-        'coords': coords[i],
-        'slide': slides[i],
-        'paths': paths[i]
-        
-        }
-        '''
-        if hosp not in patient_dict:
-            patient_dict[hosp]={}
-        
-        if pat not in patient_dict[hosp]:
-            patient_dict[hosp][pat]={
-        '''
-        if pat not in patient_dict:
-            patient_dict[pat]={
-            'label': label,
-            'megapatches': [],
-            'histodata': torch.from_numpy(histodata),
-            }
-            
-        patient_dict[pat]['megapatches'].append(megapatch_dict)
-      else:
-        patients_not_found.add(pat)
-  #print(len(patient_dict), "patients")   
-  #print(len(patients_not_found), "not in excel!")
-  
-  return patient_dict
 
 ## Intersecció entre imatges processades i metadades associades 370 a 230 pacients.
-patient_dict=patient_dict_builder(features, affectation, hospitals, patients, slides, coords)   
+patient_dict=patient_dict_builder(features, affectation, hospitals, patients, slides, coords)
 max_l=0
 for pat in patient_dict:
   patient_patch_size=len(patient_dict[pat]['megapatches'])
@@ -775,23 +208,6 @@ for pat in bt_dict:
 
 # ================= STEP 4: Training & Validation =================
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-# ================= weights =================
-def calculate_class_weights(y):
-    unique_classes, class_counts = np.unique(y, return_counts=True)
-    print("unique classes: ", unique_classes)
-    total_samples = len(y)
-    class_weights = []
-    
-    for class_label, class_count in zip(unique_classes, class_counts):
-        class_weight = total_samples / (2.0 * class_count)
-        class_weights.append(class_weight)
-    f_weights=[]
-    tot=np.sum(class_weights)
-    for weight in class_weights:
-        weight=weight/tot
-        f_weights.append(weight)
-    return f_weights
 
 
 weight_0, weight_1 = calculate_class_weights(label_list)
