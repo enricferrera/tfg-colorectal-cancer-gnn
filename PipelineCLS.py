@@ -7,13 +7,18 @@ Created on 15/02/2026
 ### Pipeline for CLS processing using graph neural networks #######
 ###################################################################
 
-from pathlib import Path
+
+import numpy as np
+import torch
 import pickle
 import random
 from sklearn.metrics import recall_score, precision_score, f1_score, roc_auc_score
 import pandas as pd
 from models import models_attention
 from dataset.loaders import *
+from dataset.loadCLS import *
+from sklearn.model_selection import StratifiedKFold
+
 
 
 
@@ -21,68 +26,7 @@ from dataset.loaders import *
 ###################################################################################################
 
 def train_loop(data_dict, idxs, model_classifier, dataset_classifier, loss_function_classifier, device,
-               optimizer_classifier, model_extractor=None, dataset_extractor=None, loss_function_extractor=None,
-               optimizer_extractor=None, epochs=30, minibatch_size=2, batch_size=12):
-    if model_extractor != None:
-        td = dataset_extractor(data_dict, idxs)
-        ppp = len(td)
-        trainloader_extractor = DataLoader(td, batch_size=batch_size, shuffle=True, pin_memory=False)
-        del td
-        model_extractor.to(device)
-        model_extractor.train()
-        model_classifier.eval()
-        loss_function_extractor.to(device)
-
-        for epoch in range(epochs):
-
-            batch_counter = 0
-
-            last_dims, affectation_rec, hospitals_rec, patients_rec, slides_rec, coords_rec, = [], [], [], [], [], []
-
-            for b in trainloader_extractor:
-                x, y, extra_info = b
-
-                # Extra info deglossed:
-                hosps_batch = extra_info['hospital']
-                pats_batch = extra_info['patient']
-                slds_batch = extra_info['slides']
-                coords_batch = extra_info['coords']
-                affectation_batch = extra_info['coords']
-
-                output, last_dim = model_extractor(x.to(device))
-
-                loss_ex = loss_function_extractor(output.float(), y.long().to(device))
-                # loss_ex = loss_ex / minibatch_size  # Scale loss
-                loss_ex.backward()
-
-                batch_counter += 1
-                if batch_counter >= minibatch_size:
-                    optimizer_extractor.step()
-                    optimizer_extractor.zero_grad()
-                    batch_counter = 0
-
-                # losses.append(loss.item())
-                last_dim_cpu = last_dim.cpu().detach()
-
-                last_dims.extend(last_dim_cpu)
-                affectation_rec.extend(affectation_batch)
-                hospitals_rec.extend(hosps_batch)
-                patients_rec.extend(pats_batch)
-                slides_rec.extend(slds_batch)
-                coords_rec.extend(coords_batch)
-
-        rebuild_params = {
-            'features': last_dims,
-            'affectation': affectation_rec,
-            'hospitals': hospitals_rec,
-            'patients': patients_rec,
-            'slides': slides_rec,
-            'coords': coords_rec,
-        }
-
-        data_dict = patient_dict_builder(**rebuild_params)
-
-        model_extractor.eval()
+               optimizer_classifier, epochs=30, minibatch_size=2, batch_size=12):
 
     model_classifier.train()
     model_classifier.to(device)
@@ -110,55 +54,12 @@ def train_loop(data_dict, idxs, model_classifier, dataset_classifier, loss_funct
                 optimizer_classifier.zero_grad()
                 batch_counter = 0
 
-    if model_extractor != None:
-        trained_models = [model_extractor, model_classifier]
+    trained_models = [model_classifier]
 
-    else:
-        trained_models = [model_classifier]
     return trained_models
 
 
-def val_loop(data_dict, idxs, model_classifier, dataset_classifier, device, dataset_extractor=None,
-             model_extractor=None, batch_size=12):
-    if model_extractor != None:
-        vd = dataset_extractor(data_dict, idxs)
-        valoader_extractor = DataLoader(vd, batch_size=batch_size, shuffle=True, pin_memory=False)
-        del vd
-        model_extractor.to(device)
-        model_extractor.eval()
-
-        last_dims, affectation_rec, hospitals_rec, patients_rec, slides_rec, coords_rec, n_padding_rec = [], [], [], [], [], [], []
-        for b in valoader_extractor:
-            x, y, extra_info = b
-
-            # Extra info deglossed:
-            hosps_batch = extra_info['hospital']
-            pats_batch = extra_info['patient']
-            slds_batch = extra_info['slides']
-            coords_batch = extra_info['coords']
-            affectation_batch = extra_info['coords']
-
-            output, last_dim = model_extractor(x.to(device))
-
-            # losses.append(loss.item())
-            last_dim_cpu = last_dim.cpu().detach()
-            last_dims.extend(last_dim_cpu)
-            affectation_rec.extend(affectation_batch)
-            hospitals_rec.extend(hosps_batch)
-            patients_rec.extend(pats_batch)
-            slides_rec.extend(slds_batch)
-            coords_rec.extend(coords_batch)
-
-        rebuild_params = {
-            'features': last_dims,
-            'affectation': affectation_rec,
-            'hospitals': hospitals_rec,
-            'patients': patients_rec,
-            'slides': slides_rec,
-            'coords': coords_rec,
-        }
-
-        data_dict = patient_dict_builder(**rebuild_params)
+def val_loop(data_dict, idxs, model_classifier, dataset_classifier, device, batch_size=12):
 
     model_classifier.to(device)
     model_classifier.eval()
@@ -192,58 +93,7 @@ def val_loop(data_dict, idxs, model_classifier, dataset_classifier, device, data
         y_pred.extend(probs.argmax(dim=1).cpu().tolist())
         y_scores.extend(probs[:, 1].cpu().tolist())
 
-        # storing attention
-        for i, hospi in enumerate(hosps_batch):
 
-            hosp = hosps_batch[i]
-            pat = pats_batch[i]
-            true = y[i].float().item()
-            label_p = true
-            st_probs = probs.cpu().tolist()[i]
-            pred = probs.argmax(dim=1).cpu().tolist()[i]
-            pred = float(pred)
-            n_pad = n_padding_batch[i]
-            n_pad = mx_patches - n_pad
-
-            slide_ds = slds_batch[i]
-            attention_matrixs = attention_scores[i].cpu()
-            coord_ds = coords_batch[i].detach().cpu()
-            x_ds = x[i].detach().cpu()
-
-            attention_matrixs = attention_matrixs[:n_pad]
-
-            coord_ds = coord_ds[:n_pad]
-
-            slide_ds = slide_ds[:n_pad]
-            x_ds = x_ds[:n_pad]
-
-            for s, slide_s in enumerate(slide_ds):
-                slide = slide_ds[s]
-                slide = slide.item()
-                slide = inv_slide_index_dict[slide]
-                coord_d = coord_ds[s].numpy()
-                features = x_ds[s].numpy()
-
-                # attention_matrix=attention_matrixs[0][s].detach().item() #Zero [0] so it doesnt fuck up everything
-
-                attention_matrix_detached = attention_matrixs.detach()
-                attention_matrix_heads = {}
-                for a, att_head in enumerate(attention_matrix_detached):
-                    attention_matrix_heads[a] = attention_matrix_detached[a][s]
-
-                if hosp not in attention_output:
-                    attention_output[hosp] = {}
-
-                if pat not in attention_output[hosp]:
-                    attention_output[hosp][pat] = {}
-
-                if slide not in attention_output[hosp][pat]:
-                    attention_output[hosp][pat][slide] = []
-
-                attention_output[hosp][pat]['scores'] = st_probs
-                attention_output[hosp][pat]['label'] = true
-                attention_output[hosp][pat]['predicted'] = pred
-                attention_output[hosp][pat][slide].append((features, coord_d, attention_matrix_heads))
 
     return y_true, y_pred, y_scores, attention_output
 
@@ -267,168 +117,17 @@ def fix_seeds(r_seed=123):
 fix_seeds(r_seed=123)
 
 
-
 ############# LOAD CLS, Data paths and indexes ###################
 ##################################################################
 
 npz_path=r"..\Data\cls_ALL"
-npz_path=Path(npz_path)
 
-affectation_flag=True#False#True
-
-tensors_list=[]
-y_list=[]
-patients_list=[]
-hosps_list=[]
-slides_list=[]
-coords_list=[]
-paths_list=[]
-for i, link in enumerate(npz_path.iterdir()):
-  
-  data = np.load(link, allow_pickle=True)
-  
-  features=data['embeddingCLS']
-  features=torch.from_numpy(features)
-  
-  affectation=data['label_list']
-  affectation=torch.from_numpy(affectation)
-  
-  patients=data['patient_list']
-  
-  hospitals=data['hospitals']
-  slides=data['slides']
-  coords=data['coords']
-  paths=data['paths']
-  
-  tensors_list.append(features)
-  y_list.append(affectation)
-  
-  patients_list.append(patients)
-  hosps_list.append(hospitals)
-  slides_list.append(slides)
-  paths_list.append(paths)
-  
-  
-  #mini_coords_list=[]
-  for coord_pack in coords:
-    coords_list.append(coord_pack[0])
-    #mini_coords_list.append(coord_pack[0])
-  #coords_list.append(mini_coords_list)
-  '''
-  print("------ Array info ----------")
-  print(f"size of CLS: {len(features)}")
-  
-  print(f"size of affectations: {len(affectation)}")
-  print(f"size of patients: {len(patients)}")
-  print(f"size of hospitals: {len(hospitals)}")
-  print(f"size of slides: {len(slides)}")
-  print(f"size of coords: {len(coords)}")
-  print(f"size of coords: {len(paths)}")
-  '''
-  
-features=torch.cat(tensors_list, dim=0)
-print("Features: ",features.shape)
-
-affectation=torch.cat(y_list, dim=0)
-print("Y: ",affectation.shape)
-
-patients=np.concatenate(patients_list)
-
-###
-#PatID_no_hosp=np.concatenate(hosps_list)
-###
-
-print("Patients: ", np.unique(patients).shape[0])
-
-hospitals=np.concatenate(hosps_list)
-print("Hospitals: ",len(np.unique(hospitals)))
-
-slides=np.concatenate(slides_list)
-print("Slides: ",len(np.unique(slides)))
-
-slides=np.concatenate(slides_list)
-print("Patches: ",features.shape[0])
-
-
-coords=np.stack(coords_list, axis=0)
-print("Coords: ",len(coords))
-
-
-paths=np.concatenate(paths_list)
-print("Image Paths: ",len(paths))
-print('------ filtering out bad patients...-------')
-
-########## Llegim les metadates de cada pacient #################################
-#################################################################################
-
-histopath=r"24_09_2025_pT1_CRC_CASOS_DEFINITIUS_AMB_ITEMS_HISTOLOGICS_fixed_N0s.xlsx"
-
-histopath_df=pd.read_excel(histopath)
-
-histopath_df=histopath_df.rename(columns={'Annotated slide ': "slides"})
-
-histopath_df.slides=histopath_df.slides.str.replace(';',',')
-
-histopath_df["PATHOLOGIST SCORE. Stage of CRC (N)TNM Colorectal Cancer 8th edition (NX/ N0/N1/N1a /N1b/N1c /N2 /N2a /N2b): N0=Negatiu; NX=Dubtos; Resta=Positiu"]=histopath_df["PATHOLOGIST SCORE. Stage of CRC (N)TNM Colorectal Cancer 8th edition (NX/ N0/N1/N1a /N1b/N1c /N2 /N2a /N2b): N0=Negatiu; NX=Dubtos; Resta=Positiu"].replace({"NX": -1,"N0": 0, "N1": 1, "N1a": 1, "N1b": 1, "N1c": 1, "N2a": 1, "N2b": 1}).astype(int)
-
-histopath_df=histopath_df.rename(columns={"PATHOLOGIST SCORE. Stage of CRC (N)TNM Colorectal Cancer 8th edition (NX/ N0/N1/N1a /N1b/N1c /N2 /N2a /N2b): N0=Negatiu; NX=Dubtos; Resta=Positiu":"PATHOLOGIST SCORE"})
-
-histopath_df = histopath_df.rename(columns={
-"CODE":"Patient_CODE",
-"Data Access Group": "hospital",
-'Lymphovascular invasion':"LVI",
-'Presence of Tumor Budding':"Budding",
-'Degree of differentiation':"Degree",
-'Vertical margin':"VRM",
-'Horizontal margin':"HRM",
-'Mucinous ADK':'Mucinous',
-'Perineural invasion': 'PI',
-'Depth of submucosal invasion (in mm)': 'Depth',
-
-})
-
-
-histopath_df['Budding']=histopath_df['Budding'].replace({"Bd0":0, "Bd1":0,"bd0": 0,  "Bd2":1, "Bd3":1, "Not applicable":2}).infer_objects()
-
-histopath_df['LVI']=histopath_df['LVI'].replace({"No":0, "Yes":1, "Bd2":1, "Bd3":1, "Not applicable":2}).infer_objects()
-
-histopath_df['Degree']=histopath_df['Degree'].replace({"Low grade (G1 and G2)":0, "High grade (G3 and G4)":1}).infer_objects()
-
-histopath_df['VRM']=histopath_df['VRM'].replace({"Free of lesion (>1 mm)":0, "Free of lesion (0.1-1 mm)":0, "Afected by adenocarcinoma":1, "Indeterminate":2}).infer_objects()
-
-histopath_df['HRM']=histopath_df['HRM'].replace({"Free of lesion":0, "Afected by adenoma or adenocarcinoma in situ (pTis)":1, "Afected by infiltrating adenocarcinoma":1, "Indeterminate":2}).infer_objects()
-
-histopath_df['PI']=histopath_df['PI'].replace({"No":0, "Yes":1}).infer_objects()
-
-histopath_df['Depth'].where(histopath_df['Depth'] <= 1, 0, inplace=True)
-histopath_df['Depth'].where(histopath_df['Depth'] > 1, 1, inplace=True)
-
-#histopath_df['Mucinous']=histopath_df['Mucinous'].replace({"No":0, "Yes":1})
-
-histopath_df=histopath_df.replace({np.nan:2})
-
-
-#Filtrem els pacients amb diagnostic NX
-histopath_df = histopath_df[histopath_df["PATHOLOGIST SCORE"] != -1]
-
-pat_histo=histopath_df["Patient_CODE"]
-
-nx_label=histopath_df["PATHOLOGIST SCORE"]
-histo_data=histopath_df[["Budding", "LVI", "Degree", "VRM", "PI", "Depth", "HRM"]]
-
-#print("what: ", len(pat_histo))
-#print("doublew: ", pd.Series(patients).value_counts())
-
-## FILTREM PACIENTS NX Baixem de 401 a 370.
-pat_nx_dict = {str(key): int(value) for key, value in zip(pat_histo, nx_label)}
-pat_histodata_dict = {str(key): value for key, value in zip(pat_histo, histo_data.values)}
-
-print("//////////////////////////////////////////////////////////")
-print(pd.Series(nx_label).value_counts())
-#################
+print('------ Database totals...-------')
+pat_nx_dict, pat_histodata_dict, features, affectation, hospitals, patients, slides, coords, paths= loadCLSMetadata(npz_path)
 
 
 ## Intersecció entre imatges processades i metadades associades 370 a 230 pacients.
+print('------ filtering out patients without diagnosis...-------')
 patient_dict=patient_dict_builder(features, affectation, hospitals, patients, slides, coords, paths, pat_nx_dict, pat_histodata_dict)
 
 
@@ -461,8 +160,6 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 weight_0, weight_1 = calculate_class_weights(label_list)
 print("weights: ", weight_0, weight_1)
-
-
 weights=torch.tensor([float(weight_0), float(weight_1)])
 
 ########## Parameters #################
@@ -471,17 +168,13 @@ n_folds=10
 minibatch_size = 2 # cada quants batch s'actualitza el gradient. Si batch_size gran millor deixar-lo a 1
 epochs = 30#10 #50
 batch_size = 24
-#batch_size = 18 #if 24, because there are 23 patients, the last one gave an error because last input was [1] instead of [N, 1]
 
-##########  ---------  ###############
-from sklearn.model_selection import StratifiedKFold
-
+##########  --------- DataSpliting and k-fold validation ----------- ###############
 
 skf = StratifiedKFold(n_folds, shuffle=True, random_state=0)
 
 pat_split=skf.split(np.array(patient_list), np.array(label_list))
 print("///////////////////////////////")
-
 attention_output={}
 metrics = {k:[] for k in ['recall_0','recall_1','precision_0','precision_1','f1_0','f1_1','auc']}
 
@@ -501,48 +194,28 @@ for fold_num, (trf, vaf) in enumerate(pat_split, 0):
     n_features=1536
     out_ch=2
     
-    loss_fn_ex = torch.nn.CrossEntropyLoss(weight=weights)
     loss_fn_clf = torch.nn.CrossEntropyLoss(weight=weights)
-    affectation_extractor = models_attention.AffectationExtractor(n_features, out_ch=2, hid1=1024, hid2=512, hid3=128, dropout=0.3)
-    #affectation_extractor = models_attention.AE()
-    
-    opt_extractor = torch.optim.Adam(affectation_extractor.parameters(), lr=1e-4)
-    
-    n_features=128
-    hid1=64
-    hid2=int(hid1/2)
-    
-    hid3=int(hid2/2)
-    
-    n_features=1536
+
     hid1=1024
     hid2=int(hid1/2)
-    
     hid3=int(hid2/2)
     mx_patches=max_l
     model = models_attention.Clf_head(mx_patches, n_features, out_ch=2, hid1=hid1, hid2=hid2, hid3=hid3, dropout=0.3, attention_branches=6)
     
     opt = torch.optim.Adam(model.parameters(), lr=1e-4)
-    
-    
-    
-    
+
     ##### TRAINING ##############
     
     
     fold_losses=[]
     train_params={
     'data_dict': bt_dict,
-    'idxs': patient_list_train, 
-    'model_extractor': None,#affectation_extractor,
+    'idxs': patient_list_train,
     'model_classifier': model,
-    'dataset_extractor': AffectDataset,#AEDataset
     'dataset_classifier': AttnDataset, #AttnDataset_SLIDE
     'device': device,
     'loss_function_classifier': loss_fn_clf,
-    'loss_function_extractor': loss_fn_ex,
     'optimizer_classifier': opt,
-    'optimizer_extractor': opt_extractor,
     'epochs': epochs,
     'minibatch_size': minibatch_size,
     'batch_size': batch_size
@@ -560,10 +233,8 @@ for fold_num, (trf, vaf) in enumerate(pat_split, 0):
     
     val_params={
     'data_dict': bt_dict,
-    'idxs': patient_list_val, 
-    'model_extractor': None,#affectation_extractor,
+    'idxs': patient_list_val,
     'model_classifier': model,
-    'dataset_extractor': AffectDataset,
     'dataset_classifier': AttnDataset,#AttnDataset_SLIDE, #AttnDataset,
     'device': device,
     'batch_size': batch_size
@@ -585,29 +256,7 @@ for fold_num, (trf, vaf) in enumerate(pat_split, 0):
     print(f"Fold {fold_num+1} AUC VA: {val_auc:.4f}")
     print("----------------------------------------") 
     
-    ########updating complete dictionary
-    for hospital in partial_att_dict:
-    
-      if hospital not in attention_output:
-        attention_output[hospital]=partial_att_dict[hospital]
-      
-      else:
-        for patient in partial_att_dict[hospital]:
-          if patient not in attention_output[hospital]:
-            attention_output[hospital][patient]=partial_att_dict[hospital][patient]
-          else:
-            for slide in partial_att_dict[hospital][patient]:
-              if slide not in attention_output[hospital][patient]:
-                attention_output[hospital][patient][slide]=partial_att_dict[hospital][patient][slide]
-              else:
-                attention_output[hospital][patient][slide].extend(partial_att_dict[hospital][patient][slide])
-    
-    
-    attention_output.update(partial_att_dict)
-           
-with open(f'attention_dict.pkl', 'wb') as f:
-  pickle.dump(attention_output, f)
-  
+
 print("---------")
 print("\nAveraged Metrics over folds:")
 for k, vals in metrics.items():
