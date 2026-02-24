@@ -14,11 +14,241 @@ from sklearn.metrics import recall_score, precision_score, f1_score, roc_auc_sco
 import pandas as pd
 from models import models_attention
 from dataset.loaders import *
-from train.train import *
-from train.val import *
 
 
 
+############## TRAIN - VAL LOOPS ##################################################################
+###################################################################################################
+
+def train_loop(data_dict, idxs, model_classifier, dataset_classifier, loss_function_classifier, device,
+               optimizer_classifier, model_extractor=None, dataset_extractor=None, loss_function_extractor=None,
+               optimizer_extractor=None, epochs=30, minibatch_size=2, batch_size=12):
+    if model_extractor != None:
+        td = dataset_extractor(data_dict, idxs)
+        ppp = len(td)
+        trainloader_extractor = DataLoader(td, batch_size=batch_size, shuffle=True, pin_memory=False)
+        del td
+        model_extractor.to(device)
+        model_extractor.train()
+        model_classifier.eval()
+        loss_function_extractor.to(device)
+
+        for epoch in range(epochs):
+
+            batch_counter = 0
+
+            last_dims, affectation_rec, hospitals_rec, patients_rec, slides_rec, coords_rec, = [], [], [], [], [], []
+
+            for b in trainloader_extractor:
+                x, y, extra_info = b
+
+                # Extra info deglossed:
+                hosps_batch = extra_info['hospital']
+                pats_batch = extra_info['patient']
+                slds_batch = extra_info['slides']
+                coords_batch = extra_info['coords']
+                affectation_batch = extra_info['coords']
+
+                output, last_dim = model_extractor(x.to(device))
+
+                loss_ex = loss_function_extractor(output.float(), y.long().to(device))
+                # loss_ex = loss_ex / minibatch_size  # Scale loss
+                loss_ex.backward()
+
+                batch_counter += 1
+                if batch_counter >= minibatch_size:
+                    optimizer_extractor.step()
+                    optimizer_extractor.zero_grad()
+                    batch_counter = 0
+
+                # losses.append(loss.item())
+                last_dim_cpu = last_dim.cpu().detach()
+
+                last_dims.extend(last_dim_cpu)
+                affectation_rec.extend(affectation_batch)
+                hospitals_rec.extend(hosps_batch)
+                patients_rec.extend(pats_batch)
+                slides_rec.extend(slds_batch)
+                coords_rec.extend(coords_batch)
+
+        rebuild_params = {
+            'features': last_dims,
+            'affectation': affectation_rec,
+            'hospitals': hospitals_rec,
+            'patients': patients_rec,
+            'slides': slides_rec,
+            'coords': coords_rec,
+        }
+
+        data_dict = patient_dict_builder(**rebuild_params)
+
+        model_extractor.eval()
+
+    model_classifier.train()
+    model_classifier.to(device)
+    loss_function_classifier.to(device)
+    td = dataset_classifier(data_dict, idxs)
+    trainloader_classifier = DataLoader(td, batch_size=batch_size, shuffle=True, pin_memory=False)
+    del td
+
+    for epoch in range(epochs):
+
+        batch_counter = 0
+        for b in trainloader_classifier:
+            x, y, extra_info, histodata = b
+
+            n_padding_batch = extra_info['n_padding']
+            output, _ = model_classifier(x.to(device), n_padding=n_padding_batch, histodata=None)
+
+            loss_clf = loss_function_classifier(output, y.long().to(device))
+            loss_clf = loss_clf / minibatch_size  # Scale loss
+            loss_clf.backward()
+
+            batch_counter += 1
+            if batch_counter >= minibatch_size:
+                optimizer_classifier.step()
+                optimizer_classifier.zero_grad()
+                batch_counter = 0
+
+    if model_extractor != None:
+        trained_models = [model_extractor, model_classifier]
+
+    else:
+        trained_models = [model_classifier]
+    return trained_models
+
+
+def val_loop(data_dict, idxs, model_classifier, dataset_classifier, device, dataset_extractor=None,
+             model_extractor=None, batch_size=12):
+    if model_extractor != None:
+        vd = dataset_extractor(data_dict, idxs)
+        valoader_extractor = DataLoader(vd, batch_size=batch_size, shuffle=True, pin_memory=False)
+        del vd
+        model_extractor.to(device)
+        model_extractor.eval()
+
+        last_dims, affectation_rec, hospitals_rec, patients_rec, slides_rec, coords_rec, n_padding_rec = [], [], [], [], [], [], []
+        for b in valoader_extractor:
+            x, y, extra_info = b
+
+            # Extra info deglossed:
+            hosps_batch = extra_info['hospital']
+            pats_batch = extra_info['patient']
+            slds_batch = extra_info['slides']
+            coords_batch = extra_info['coords']
+            affectation_batch = extra_info['coords']
+
+            output, last_dim = model_extractor(x.to(device))
+
+            # losses.append(loss.item())
+            last_dim_cpu = last_dim.cpu().detach()
+            last_dims.extend(last_dim_cpu)
+            affectation_rec.extend(affectation_batch)
+            hospitals_rec.extend(hosps_batch)
+            patients_rec.extend(pats_batch)
+            slides_rec.extend(slds_batch)
+            coords_rec.extend(coords_batch)
+
+        rebuild_params = {
+            'features': last_dims,
+            'affectation': affectation_rec,
+            'hospitals': hospitals_rec,
+            'patients': patients_rec,
+            'slides': slides_rec,
+            'coords': coords_rec,
+        }
+
+        data_dict = patient_dict_builder(**rebuild_params)
+
+    model_classifier.to(device)
+    model_classifier.eval()
+
+    vd = dataset_classifier(data_dict, idxs)
+
+    valoader_classifier = DataLoader(vd, batch_size=batch_size, shuffle=True, pin_memory=False)
+    del vd
+
+    attention_output = {}
+
+    y_true, y_pred, y_scores = [], [], []
+
+    for b in valoader_classifier:
+        x, y, extra_info, histodata = b
+
+        # Extra info deglossed:
+        hosps_batch = extra_info['hospital']
+        pats_batch = extra_info['patient']
+        slds_batch = extra_info['slides']
+        coords_batch = extra_info['coords']
+        affectation_batch = extra_info['coords']
+        n_padding_batch = extra_info['n_padding']
+
+        output, attention_scores = model_classifier(x.to(device), n_padding=n_padding_batch, histodata=None)
+
+        probs = F.softmax(output, dim=1).cpu()
+
+        y_true.extend(y.cpu().tolist())
+
+        y_pred.extend(probs.argmax(dim=1).cpu().tolist())
+        y_scores.extend(probs[:, 1].cpu().tolist())
+
+        # storing attention
+        for i, hospi in enumerate(hosps_batch):
+
+            hosp = hosps_batch[i]
+            pat = pats_batch[i]
+            true = y[i].float().item()
+            label_p = true
+            st_probs = probs.cpu().tolist()[i]
+            pred = probs.argmax(dim=1).cpu().tolist()[i]
+            pred = float(pred)
+            n_pad = n_padding_batch[i]
+            n_pad = mx_patches - n_pad
+
+            slide_ds = slds_batch[i]
+            attention_matrixs = attention_scores[i].cpu()
+            coord_ds = coords_batch[i].detach().cpu()
+            x_ds = x[i].detach().cpu()
+
+            attention_matrixs = attention_matrixs[:n_pad]
+
+            coord_ds = coord_ds[:n_pad]
+
+            slide_ds = slide_ds[:n_pad]
+            x_ds = x_ds[:n_pad]
+
+            for s, slide_s in enumerate(slide_ds):
+                slide = slide_ds[s]
+                slide = slide.item()
+                slide = inv_slide_index_dict[slide]
+                coord_d = coord_ds[s].numpy()
+                features = x_ds[s].numpy()
+
+                # attention_matrix=attention_matrixs[0][s].detach().item() #Zero [0] so it doesnt fuck up everything
+
+                attention_matrix_detached = attention_matrixs.detach()
+                attention_matrix_heads = {}
+                for a, att_head in enumerate(attention_matrix_detached):
+                    attention_matrix_heads[a] = attention_matrix_detached[a][s]
+
+                if hosp not in attention_output:
+                    attention_output[hosp] = {}
+
+                if pat not in attention_output[hosp]:
+                    attention_output[hosp][pat] = {}
+
+                if slide not in attention_output[hosp][pat]:
+                    attention_output[hosp][pat][slide] = []
+
+                attention_output[hosp][pat]['scores'] = st_probs
+                attention_output[hosp][pat]['label'] = true
+                attention_output[hosp][pat]['predicted'] = pred
+                attention_output[hosp][pat][slide].append((features, coord_d, attention_matrix_heads))
+
+    return y_true, y_pred, y_scores, attention_output
+
+############## END  TRAIN - VAL LOOPS ##################################################################
+###################################################################################################
 
 #------FIXED SEEDS for reproducibility-------
 r_seed=123
@@ -37,9 +267,9 @@ def fix_seeds(r_seed=123):
 fix_seeds(r_seed=123)
 
 
-      
 
-############# Data paths and indexes ###################
+############# LOAD CLS, Data paths and indexes ###################
+##################################################################
 
 npz_path=r"..\Data\cls_ALL"
 npz_path=Path(npz_path)
@@ -198,7 +428,6 @@ print(pd.Series(nx_label).value_counts())
 #################
 
 
-
 ## Intersecció entre imatges processades i metadades associades 370 a 230 pacients.
 patient_dict=patient_dict_builder(features, affectation, hospitals, patients, slides, coords, paths, pat_nx_dict, pat_histodata_dict)
 
@@ -211,11 +440,9 @@ for pat in patient_dict:
     max_l=patient_patch_size
     
 print(max_l) # mostres del pacient amb mes mostres
-############# Sampling only a percent of each patients patches ##############
-############# and creating four dictionaries (then storing them) ##############
+
 
 ### MAP EACH SLIDE TO A NUMBER SO THAT THE DATALOADER CAN TAKE THEM
-
 unique_slide_list = list(set(slides))
 slide_index_dict={word: index for index, word in enumerate(unique_slide_list)}
 inv_slide_index_dict = {v: k for k, v in slide_index_dict.items()}
@@ -223,7 +450,6 @@ inv_slide_index_dict = {v: k for k, v in slide_index_dict.items()}
 
 fix_seeds(r_seed=123)
 
-#megapatches_to_use=boostrapped_megapatch_dicts[i]
 bt_dict=patient_dict
 patient_list=list(bt_dict.keys())
 label_list=[]
@@ -239,16 +465,11 @@ print("weights: ", weight_0, weight_1)
 
 weights=torch.tensor([float(weight_0), float(weight_1)])
 
-#loss_fn = torch.nn.CrossEntropyLoss(weight=weights)
-
 ########## Parameters #################
 
 n_folds=10
 minibatch_size = 2
-
 epochs = 30#10 #50
-
-
 batch_size = 24
 #batch_size = 18 #if 24, because there are 23 patients, the last one gave an error because last input was [1] instead of [N, 1]
 
@@ -317,8 +538,6 @@ for fold_num, (trf, vaf) in enumerate(pat_split, 0):
     'model_classifier': model,
     'dataset_extractor': AffectDataset,#AEDataset
     'dataset_classifier': AttnDataset, #AttnDataset_SLIDE
-    'max_l' : max_l,
-    'slide_index_dict' : slide_index_dict,
     'device': device,
     'loss_function_classifier': loss_fn_clf,
     'loss_function_extractor': loss_fn_ex,
@@ -347,9 +566,7 @@ for fold_num, (trf, vaf) in enumerate(pat_split, 0):
     'dataset_extractor': AffectDataset,
     'dataset_classifier': AttnDataset,#AttnDataset_SLIDE, #AttnDataset,
     'device': device,
-    'batch_size': batch_size,
-    'max_l': max_l,
-    'inv_slide_index_dict': inv_slide_index_dict
+    'batch_size': batch_size
     }
     
     y_true, y_pred, y_scores, partial_att_dict = val_loop(**val_params)
