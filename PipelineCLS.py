@@ -87,7 +87,7 @@ def train_loop(data_dict, idxs, model_classifier, dataset_classifier, loss_funct
     model_classifier.train()
     model_classifier.to(device)
     loss_function_classifier.to(device)
-    td = dataset_classifier(data_dict, idxs)
+    td = dataset_classifier(data_dict, idxs, max_l, slide_index_dict)
     trainloader_classifier = DataLoader(td, batch_size=batch_size, shuffle=True, pin_memory=False)
     del td
 
@@ -163,7 +163,7 @@ def val_loop(data_dict, idxs, model_classifier, dataset_classifier, device, data
     model_classifier.to(device)
     model_classifier.eval()
 
-    vd = dataset_classifier(data_dict, idxs)
+    vd = dataset_classifier(data_dict, idxs, max_l, slide_index_dict)
 
     valoader_classifier = DataLoader(vd, batch_size=batch_size, shuffle=True, pin_memory=False)
     del vd
