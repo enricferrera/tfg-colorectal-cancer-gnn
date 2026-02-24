@@ -113,7 +113,6 @@ def fix_seeds(r_seed=123):
   
 # -----------------------
 # CONFIGURATION AND DATA LOADING
-# LOAD image and labels
 fix_seeds(r_seed=123)
 
 

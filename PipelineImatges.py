@@ -113,7 +113,6 @@ def fix_seeds(r_seed=123):
 
 # -----------------------
 # CONFIGURATION AND DATA LOADING
-# LOAD image and labels
 fix_seeds(r_seed=123)
 
 
@@ -122,11 +121,12 @@ fix_seeds(r_seed=123)
 
 #Directori del servidor on es troben les imatges
 imatges_of_2048_path = r"Z:\Database\MedicalImaging\HistoPatologia\ColonCancer\PrivateBD\PEARSON\Images\Patches_2048"
-pat_nx_dict, pat_histodata_dict, paths, affectation, hospitals, patients, slides, coords, paths = loadHistoImagesMetadata(imatges_of_2048_path)
+pat_nx_dict, pat_histodata_dict, features, affectation, hospitals, patients, slides, coords, paths = loadHistoImagesMetadata(imatges_of_2048_path)
 
 print('------ filtering out patients without diagnosis...-------')
 ## Intersecció entre imatges processades i metadades associades 370 a 230 pacients.
-patient_dict=patient_dict_builder(paths, affectation, hospitals, patients, slides, coords, paths, pat_nx_dict, pat_histodata_dict)
+#Les features es una copia de la varia paths. En aquest cas son el path a les imatges.
+patient_dict=patient_dict_builder(features, affectation, hospitals, patients, slides, coords, paths, pat_nx_dict, pat_histodata_dict)
 
 # Busquem quantes mostres té el pacient amb més mostres
 max_l = 0
