@@ -4,7 +4,7 @@ Created on 15/02/2026
 
 @author: Nil Arenos i Carles Sanchez
 """
-### Pipeline for Image processing using Autoencoders
+### Pipeline for Image processing using Autoencoders ##############
 ###################################################################
 
 

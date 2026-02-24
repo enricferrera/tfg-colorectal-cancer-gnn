@@ -4,7 +4,7 @@ Created on 15/02/2026
 
 @author: Nil Arenos i Carles Sanchez
 """
-### Pipeline for CLS processing using graph neural networks
+### Pipeline for CLS processing using graph neural networks #######
 ###################################################################
 
 from pathlib import Path
