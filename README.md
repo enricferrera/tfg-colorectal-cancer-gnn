@@ -11,4 +11,4 @@
 
 * dataset : funcions/loaders per manipular les dades. És possible que els loaders s'hagin d'adaptar a la representació concreta (graphs, AE, VAE...). 
 * DocsSoA: documents d'estat de l'art i del projecte. 
-* models: scripts amb diferents models de deep learning. Attention models, AE models i Graph models. 
+* models: scripts amb diferents models de deep learning. Attention models, AE models i Graph models. S'haurà d'adaptar o refer depenent dels objectius.
