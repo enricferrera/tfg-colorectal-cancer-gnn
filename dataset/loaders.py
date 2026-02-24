@@ -238,9 +238,10 @@ class AttnDataset(torch.utils.data.Dataset):
         selc_patient=self.patient_dict_list[i]
 
 
-        x=[]
-        for megapatch in self.pat_dict[selc_patient]['megapatches']:
-            x.append(megapatch['features'])
+        # x=[]
+        # for megapatch in self.pat_dict[selc_patient]['megapatches']:
+        #     x.append(megapatch['features'])
+        x = [megapatch['features'] for megapatch in self.pat_dict[selc_patient]['megapatches']]
 
         x=torch.stack(x, dim=0)
 
@@ -251,9 +252,11 @@ class AttnDataset(torch.utils.data.Dataset):
         y=self.pat_dict[selc_patient]['label']
         histodata=self.pat_dict[selc_patient]['histodata']
         #### padding coords #####
-        coords=[]
-        for megapatch in self.pat_dict[selc_patient]['megapatches']:
-            coords.append(megapatch['coords'])
+        # coords=[]
+        # for megapatch in self.pat_dict[selc_patient]['megapatches']:
+        #     coords.append(megapatch['coords'])
+
+        coords = [megapatch['coords'] for megapatch in self.pat_dict[selc_patient]['megapatches']]
 
 
         coords=np.stack(coords, axis=0)
@@ -269,8 +272,10 @@ class AttnDataset(torch.utils.data.Dataset):
 
 
 
-        slides_padded =  slides_n + [000000] * (self.max_l-len(slides_n))
-        slides_padded=np.array(slides_padded)
+        #slides_padded =  slides_n + [000000] * (self.max_l-len(slides_n))
+        slides_n = np.array(slides_n)
+        slides_padded = np.pad(slides_n, (0, self.max_l - len(slides_n)), 'constant', constant_values=0)
+        #slides_padded=np.array(slides_padded)
 
         extra_info= {
             'hospital': self.pat_dict[selc_patient]['megapatches'][0]['hospital'],
