@@ -96,10 +96,11 @@ def train_loop(data_dict, idxs, model_classifier, dataset_classifier, loss_funct
 
         batch_counter = 0
         for b in trainloader_classifier:
+
             x, y, extra_info, histodata = b
 
             n_padding_batch = extra_info['n_padding']
-            output, _ = model_classifier(x.to(device), n_padding=n_padding_batch, histodata=None)
+            output, _ = model_classifier(x.to(device), n_padding=n_padding_batch.to(device), histodata=None)
 
             loss_clf = loss_function_classifier(output, y.long().to(device))
             loss_clf = loss_clf / minibatch_size  # Scale loss

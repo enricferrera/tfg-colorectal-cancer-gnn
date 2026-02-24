@@ -98,7 +98,7 @@ def train_loop(data_dict, idxs, model_classifier, dataset_classifier, loss_funct
             x, y, extra_info, histodata = b
 
             n_padding_batch = extra_info['n_padding']
-            output, _ = model_classifier(x.to(device), n_padding=n_padding_batch, histodata=None)
+            output, _ = model_classifier(x.to(device), n_padding=n_padding_batch.to(device), histodata=None)
 
             loss_clf = loss_function_classifier(output, y.long().to(device))
             loss_clf = loss_clf / minibatch_size  # Scale loss
@@ -468,7 +468,7 @@ weights=torch.tensor([float(weight_0), float(weight_1)])
 ########## Parameters #################
 
 n_folds=10
-minibatch_size = 2
+minibatch_size = 2 # cada quants batch s'actualitza el gradient. Si batch_size gran millor deixar-lo a 1
 epochs = 30#10 #50
 batch_size = 24
 #batch_size = 18 #if 24, because there are 23 patients, the last one gave an error because last input was [1] instead of [N, 1]
