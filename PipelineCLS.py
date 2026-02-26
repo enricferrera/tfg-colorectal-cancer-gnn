@@ -29,6 +29,7 @@ def train_loop(data_dict, idxs, model_classifier, dataset_classifier, loss_funct
     model_classifier.train()
     model_classifier.to(device)
     loss_function_classifier.to(device)
+    #Haureu de la vostre classe dataset per adaptar-la a la necessitat del model.
     td = dataset_classifier(data_dict, idxs, max_l, slide_index_dict)
     trainloader_classifier = DataLoader(td, batch_size=batch_size, shuffle=True, pin_memory=False)
     del td
@@ -150,7 +151,12 @@ bt_dict=patient_dict
 patient_list=list(bt_dict.keys())
 label_list=[]
 for pat in bt_dict:
-  label_list.append(bt_dict[pat]['label'])  
+  label_list.append(bt_dict[pat]['label'])
+
+# Preparar les dades per poder entrenar els diferents models.
+# La preparació de les dades es pot fer previa a la creació dels loaders i guardar a disc (offline) o dins de la propia classe dels loaders (online).
+# Tot depèn dels recursos que necessiteu.
+
 
 # ================= STEP 4: Training & Validation =================
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -193,6 +199,7 @@ for fold_num, (trf, vaf) in enumerate(pat_split, 0):
     
     loss_fn_clf = torch.nn.CrossEntropyLoss(weight=weights)
 
+    # Haureu de canviar el model pel que volgueu utilitzar.
     hid1=1024
     hid2=int(hid1/2)
     hid3=int(hid2/2)
