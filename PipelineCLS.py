@@ -76,11 +76,11 @@ def val_loop(data_dict, idxs, model_classifier, dataset_classifier, device, batc
         x, y, extra_info, histodata = b
 
         # Extra info deglossed:
-        hosps_batch = extra_info['hospital']
-        pats_batch = extra_info['patient']
-        slds_batch = extra_info['slides']
-        coords_batch = extra_info['coords']
-        affectation_batch = extra_info['coords']
+        # hosps_batch = extra_info['hospital']
+        # pats_batch = extra_info['patient']
+        # slds_batch = extra_info['slides']
+        # coords_batch = extra_info['coords']
+        # affectation_batch = extra_info['coords']
         n_padding_batch = extra_info['n_padding']
 
         output, attention_scores = model_classifier(x.to(device), n_padding=n_padding_batch, histodata=None)
