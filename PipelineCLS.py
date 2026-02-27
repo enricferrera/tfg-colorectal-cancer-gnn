@@ -156,6 +156,8 @@ for pat in bt_dict:
 # Preparar les dades per poder entrenar els diferents models.
 # La preparació de les dades es pot fer previa a la creació dels loaders i guardar a disc (offline) o dins de la propia classe dels loaders (online).
 # Tot depèn dels recursos que necessiteu.
+# Utilitzar la llibreria torch.geometric per crear els graphs i els batch.
+#           from torch_geometric.data import Data,Batch  --> busqueu com implementar-ho.
 
 
 # ================= STEP 4: Training & Validation =================
@@ -216,7 +218,7 @@ for fold_num, (trf, vaf) in enumerate(pat_split, 0):
     'data_dict': bt_dict,
     'idxs': patient_list_train,
     'model_classifier': model,
-    'dataset_classifier': AttnDataset, #AttnDataset_SLIDE
+    'dataset_classifier': AttnDataset, # Això s'haurà de substituir pel vostre dataset.
     'device': device,
     'loss_function_classifier': loss_fn_clf,
     'optimizer_classifier': opt,

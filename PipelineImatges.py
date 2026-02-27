@@ -150,6 +150,11 @@ label_list = []
 for pat in bt_dict:
     label_list.append(bt_dict[pat]['label'])
 
+# Preparar les dades per poder entrenar els diferents models.
+# La preparació de les dades es pot fer previa a la creació dels loaders i guardar a disc (offline) o dins de la propia classe dels loaders (online).
+# Tot depèn dels recursos que necessiteu donats pels tipus d'input.
+
+
 # ================= STEP 4: Training & Validation =================
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -207,7 +212,7 @@ for fold_num, (trf, vaf) in enumerate(pat_split, 0):
         'data_dict': bt_dict,
         'idxs': patient_list_train,
         'model_classifier': model,
-        'dataset_classifier': AttnDataset,  # AttnDataset_SLIDE
+        'dataset_classifier': AttnDataset,  # Això s'haurà de substituir pel vostre dataset.
         'device': device,
         'loss_function_classifier': loss_fn_clf,
         'optimizer_classifier': opt,
