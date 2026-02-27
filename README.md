@@ -3,7 +3,8 @@
 ## Fitxers:
 
 * PipelineCLS.py : Càrrega de CLS, Intersecció amb metadates clíniques i train-val loops. 
-* PipelineImatges : Càrrega dels paths de les imatges, Intersecció amb metadates clíniques i train-val loops. 
+* PipelineImatges : Càrrega dels paths de les imatges, Intersecció amb metadates clíniques i train-val loops.
+* PipelineHomologia : Càrrega de CLS, Intersecció amb metadates clíniques.
 * PipelineOriginal: Còpia script inicial. No tocar. 
 * 24_09_2025_pT1_CRC_CASOS_DEFINITIUS_AMB_ITEMS_HISTOLOGICS_fixed_N0s.xls : Metadades dels pacients. 
 * requirements.txt : llibreries necessàries.
@@ -13,3 +14,4 @@
 * dataset : funcions/loaders per manipular les dades. És possible que els loaders s'hagin d'adaptar a la representació concreta (graphs, AE, VAE...). 
 * DocsSoA: documents d'estat de l'art i del projecte. 
 * models: scripts amb diferents models de deep learning. Attention models, AE models i Graph models. S'haurà d'adaptar o refer depenent dels objectius.
+* CodeTFGVAEs: Exemple d'utilització dels VAEs
