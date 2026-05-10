@@ -1,0 +1,33 @@
+[project]
+name = "pt1diagnosis"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13,<3.14"
+# ADD THE LIBRARIES HERE:
+dependencies = [
+    "torch",
+    "torchvision",
+    "numpy",
+    "pandas",
+    "scikit-learn",
+    "scikit-image",
+    "matplotlib",
+    "seaborn",
+    "pillow",
+    "torch-geometric",
+    "openpyxl>=3.1.5",
+    "pyrefly>=0.45.0",
+    "torch-cluster>=1.6.3",
+]
+
+[[tool.uv.index]]
+name = "pytorch"
+url = "https://download.pytorch.org/whl/cu121"
+# Change explicit to false for a moment to make the first install easier
+explicit = false
+
+[dependency-groups]
+dev = [
+    "commitizen>=4.13.9",
+]

@@ -1,0 +1,16 @@
+# Gemini Code Assist Ignore File
+
+# Version control
+.git/
+
+# IDE metadata
+.idea/
+
+# Python virtual environment
+.venv/
+
+# Datasets
+*.xlsx
+
+# Documentation
+DocsSoA/
