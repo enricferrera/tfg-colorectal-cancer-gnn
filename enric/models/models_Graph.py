@@ -31,7 +31,7 @@ class GATWeight_batch(torch.nn.Module):
         edge_dim = 1 if use_edge_attr else None
         self.gat1 = GATConv(in_ch, hidden_ch, heads=heads, concat=True, edge_dim=edge_dim)
         self.gat2 = GATConv(hidden_ch*heads, hidden_ch, heads=1, concat=True, edge_dim=edge_dim)
-        self.classifier = torch.nn.Linear(in_ch, out_ch)
+        self.classifier = torch.nn.Linear(hidden_ch, out_ch)
 
     def forward(self, nodes, edges, weight_edges , batch_idx):
         """
