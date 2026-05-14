@@ -1,0 +1,2 @@
+Experiment,Model,Graphs,recall_0_mean,recall_0_std,recall_1_mean,recall_1_std,precision_0_mean,precision_0_std,precision_1_mean,precision_1_std,f1_0_mean,f1_0_std,f1_1_mean,f1_1_std,auc_mean,auc_std
+GCN_KNN_k5_Cosine,GCN,knn_cosine_k5,0.8438,0.1432,0.6,0.1666,0.8283,0.0574,0.6772,0.2511,0.8308,0.0905,0.6168,0.1825,0.7661,0.0941
