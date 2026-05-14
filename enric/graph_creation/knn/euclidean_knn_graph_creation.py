@@ -8,7 +8,7 @@ from pathlib import Path
 import time
 
 
-def knn_graph_creation(patient_dict, k_neighbors=8):
+def euclidean_knn_graph_creation(patient_dict, k=8):
     """
     Iterates through all the patients, creates a graph for each patient using
     KNN on CLS features, and saves each graph to disk.
@@ -16,11 +16,11 @@ def knn_graph_creation(patient_dict, k_neighbors=8):
     Args:
         patient_dict (dict): Dictionary organized by patient ID containing 
                              labels, megapatches, and histodata.
-        k_neighbors (int): Number of neighbors for the KNN graph.
+        k (int): Number of neighbors for the KNN graph.
     """
 
     # --- 1. Setup the Output Directory ---
-    graph_dir = Path(__file__).parent / "graphs"
+    graph_dir = Path(__file__).parent / "graphs" / "euclidean" / f"k_{k}"
     graph_dir.mkdir(parents=True, exist_ok=True)
     
     start_time = time.time()
@@ -41,7 +41,7 @@ def knn_graph_creation(patient_dict, k_neighbors=8):
 
         # Create graph edges based on the K-Nearest Neighbors in the FEATURE space
         # Note: knn_graph computes directed edges from k-nearest neighbors.
-        edge_index = knn_graph(node_features, k=k_neighbors, loop=True)
+        edge_index = knn_graph(node_features, k=k, loop=True)
 
         # Assemble the graph data object
         graph = Data(

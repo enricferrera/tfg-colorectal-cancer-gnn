@@ -4,14 +4,13 @@ import random
 
 def fix_seeds(r_seed=123):
   """
-    Loads classification images from the specified directory.
+    Fixes the random seeds for reproducibility across PyTorch, NumPy, and Python.
 
-      Args:
-        path (str): The absolute path to the dataset folder.
-        batch_size (int, optional): Number of images per batch. Defaults to 32.
+    This ensures that random operations like weight initialization, data shuffling,
+    and GPU computations yield the same results across different runs.
 
-      Returns:
-        np.ndarray: A NumPy array containing the loaded image batch.
+    Args:
+    r_seed (int): The seed value to use. Defaults to 123.
   """
 
   torch.manual_seed(r_seed)
