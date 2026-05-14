@@ -1,49 +1,53 @@
 # ==================================================================
-# SCRIPT TO ACCESS PATIENT DATA FOR OFFLINE GRAPH CREATION
+# SCRIPT FOR COSINE-SIMILARITY KNN GRAPH CREATION
 # ==================================================================
 import torch
+import torch.nn.functional as F
 from torch_geometric.data import Data
-
-from torch_geometric.nn import radius_graph
+from torch_geometric.nn import knn_graph
 from pathlib import Path
 import time
 
 
-def radius_graph_creation(patient_dict, r=5):
+def cosine_knn_graph_creation(patient_dict, k=8):
     """
-    Iterates through all the patients, creates a connected graph based on a set radius for each,
-    and saves each graph to disk.
+    Creates a graph for each patient using KNN based on Cosine Similarity
+    of the CLS features, and saves each graph to disk.
 
     Args:
-        patient_dict (dict): Dictionary organized by patient ID containing
+        patient_dict (dict): Dictionary organized by patient ID containing 
                              labels, megapatches, and histodata.
-        r (int): Radius for the radius graph.
+        k (int): Number of neighbors for the KNN graph.
     """
 
     # --- 1. Setup the Output Directory ---
-    graph_dir = Path(__file__).parent / "graphs" / f"r_{r}"
+    graph_dir = Path(__file__).parent / "graphs" / "cosine" / f"k_{k}"
     graph_dir.mkdir(parents=True, exist_ok=True)
-
+    
     start_time = time.time()
-    print(f"Starting radius graph creation for {len(patient_dict)} patients...")
+    print(f"Starting cosine KNN graph creation for {len(patient_dict)} patients...")
 
     # --- 2. Loop and Create a Graph for Each Patient ---
     total_patients = len(patient_dict)
     for i, (patient_id, patient_data) in enumerate(patient_dict.items()):
+        
         # Print progress on the same line
-        print(f"\rProcessing patient {i + 1}/{total_patients} ({patient_id})...", end="", flush=True)
+        print(f"\rProcessing patient {i+1}/{total_patients} ({patient_id})...", end="", flush=True)
 
         # Extract patch-level features
         node_features = torch.stack([m['features'] for m in patient_data['megapatches']])
-
-        # Create graph edges based on a set radius from a node in the FEATURE space
-        # Note: radius_graph computes directed edges from k-nearest neighbors.
-        edge_index = radius_graph(node_features, r=r, loop=True)
+        
+        # L2-Normalize the features. Euclidean distance on L2-normalized vectors 
+        # is mathematically equivalent to ranking by Cosine Similarity.
+        normalized_features = F.normalize(node_features, p=2, dim=1)
 
         graph_label = patient_data['label']
         histodata = patient_data['histodata']
 
-        # Assemble the graph data object
+        # Create graph edges based on Cosine Similarity (via normalized Euclidean)
+        edge_index = knn_graph(normalized_features, k=k, loop=True)
+
+        # Assemble the graph data object (store the original unnormalized features for training)
         graph = Data(
             x=node_features,
             edge_index=edge_index,
@@ -57,8 +61,8 @@ def radius_graph_creation(patient_dict, r=5):
 
     end_time = time.time()
     duration = end_time - start_time
-    print("-" * 50)
-    print(f"Radiues graph creation complete.")
+    print("\n" + "-" * 50)
+    print(f"Cosine KNN graph creation complete.")
     print(f"Saved {len(list(graph_dir.glob('*.pt')))} graphs to '{graph_dir}' directory.")
     print(f"Total time: {duration // 60:.0f}m {duration % 60:.0f}s")
     print("-" * 50)

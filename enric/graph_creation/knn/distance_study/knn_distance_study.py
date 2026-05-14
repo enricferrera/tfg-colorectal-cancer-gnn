@@ -16,7 +16,7 @@ if str(root_path) not in sys.path:
     sys.path.append(str(root_path))
 
 try:
-    from enric.load_cls import load_cls_metadata, patient_dict_builder
+    from enric import load_cls_metadata, patient_dict_builder
 except ImportError:
     print(f"Could not import data loaders. Checked root_path: {root_path}")
     raise
