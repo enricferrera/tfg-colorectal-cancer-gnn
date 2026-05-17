@@ -31,21 +31,25 @@ class GATWeight_batch(torch.nn.Module):
         edge_dim = 1 if use_edge_attr else None
         self.gat1 = GATConv(in_ch, hidden_ch, heads=heads, concat=True, edge_dim=edge_dim)
         self.gat2 = GATConv(hidden_ch*heads, hidden_ch, heads=1, concat=True, edge_dim=edge_dim)
+        # The classifier receives features after pooling.
+        # Since the last GAT layer (gat2) has hidden_ch output and 1 head (with concat=True), 
+        # the dimension here is hidden_ch.
         self.classifier = torch.nn.Linear(hidden_ch, out_ch)
 
     def forward(self, nodes, edges, weight_edges , batch_idx):
         """
             nodes:           (N_total_nodes, in_ch)
             edges: (2, TotalEdgesBatch) - És el graf expressat per les arestes. Parelles de nodes.
-            weight_edges: (1,TotalEdgesBatch) - pesos de cada aresta
+            weight_edges: (TotalEdgesBatch, 1) or (TotalEdgesBatch,) - pesos de cada aresta
             batch_idx:   (N_total_nodes,) - indica a quin graf pertany cada node
             """
 
-        if self.use_edge_attr:
-
+        if self.use_edge_attr and weight_edges is not None:
+            # GATConv with edge_dim=1 expects (E, 1)
+            if weight_edges.dim() == 1:
+                weight_edges = weight_edges.unsqueeze(-1)
             x1 = F.relu(self.gat1(nodes, edges, weight_edges))
             x2 = F.relu(self.gat2(x1, edges, weight_edges))
-
         else:
             x1 = F.relu(self.gat1(nodes, edges))
             x2 = F.relu(self.gat2(x1, edges))
