@@ -43,10 +43,18 @@ def euclidean_knn_graph_creation(patient_dict, k=8):
         # Note: knn_graph computes directed edges from k-nearest neighbors.
         edge_index = knn_graph(node_features, k=k, loop=True)
 
+        # Calculate edge weights (inverse distance or Gaussian kernel)
+        src, dst = edge_index
+        dist = torch.norm(node_features[src] - node_features[dst], p=2, dim=-1)
+        # Use a Gaussian kernel for weights, sigma can be tuned. 
+        # Here we use the sqrt of feature dimension as a heuristic scale.
+        edge_attr = torch.exp(-dist / (node_features.size(1) ** 0.5))
+
         # Assemble the graph data object
         graph = Data(
             x=node_features,
             edge_index=edge_index,
+            edge_attr=edge_attr,
             y=torch.tensor([graph_label]),
         )
         graph.histodata = histodata

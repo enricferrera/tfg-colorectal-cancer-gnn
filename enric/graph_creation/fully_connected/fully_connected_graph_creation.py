@@ -36,11 +36,17 @@ def fully_connected_graph_creation(patient_dict):
         node_features = torch.stack([m['features'] for m in patient_data['megapatches']])
         num_nodes = node_features.size(0)
 
+        # --- MEMORY EFFICIENT DISTANCE CALCULATION ---
+        # Instead of expanding to (N^2, Dim), we use cdist which returns (N, N)
+        # For N=3000, (N, N) is ~36MB, while (N^2, Dim) was ~50GB!
+        dist_matrix = torch.cdist(node_features, node_features, p=2)
+        edge_attr = torch.exp(-dist_matrix / (node_features.size(1) ** 0.5)).view(-1)
+
         # Create fully connected edges (including self-loops)
-        # We create a 2x(N^2) tensor where every node is connected to every other node
-        # This is done by getting all indices from an N x N matrix of ones
-        adj = torch.ones((num_nodes, num_nodes))
-        edge_index = adj.nonzero().t().contiguous()
+        # Matches the flattened dist_matrix view
+        idx = torch.arange(num_nodes)
+        grid_x, grid_y = torch.meshgrid(idx, idx, indexing='ij')
+        edge_index = torch.stack([grid_x.reshape(-1), grid_y.reshape(-1)], dim=0)
 
         graph_label = patient_data['label']
         histodata = patient_data['histodata']
@@ -49,6 +55,7 @@ def fully_connected_graph_creation(patient_dict):
         graph = Data(
             x=node_features,
             edge_index=edge_index,
+            edge_attr=edge_attr,
             y=torch.tensor([graph_label]),
         )
         graph.histodata = histodata

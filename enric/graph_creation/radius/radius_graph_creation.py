@@ -37,8 +37,29 @@ def radius_graph_creation(patient_dict, r=5):
         node_features = torch.stack([m['features'] for m in patient_data['megapatches']])
 
         # Create graph edges based on a set radius from a node in the FEATURE space
-        # Note: radius_graph computes directed edges from k-nearest neighbors.
         edge_index = radius_graph(node_features, r=r, loop=True)
+
+        # --- MEMORY EFFICIENT DISTANCE CALCULATION ---
+        # Instead of full expansion, we use pair-wise vectorized subtraction
+        # only on the existing edges. If E is huge, we process in chunks.
+        src, dst = edge_index
+        
+        num_edges = edge_index.size(1)
+        chunk_size = 1000000 # Process 1M edges at a time to save VRAM/RAM
+        edge_attr_list = []
+        
+        for start in range(0, num_edges, chunk_size):
+            end = min(start + chunk_size, num_edges)
+            s_idx = src[start:end]
+            d_idx = dst[start:end]
+            
+            # Compute distance for this chunk
+            dist_chunk = torch.norm(node_features[s_idx] - node_features[d_idx], p=2, dim=-1)
+            # Convert to weight
+            weight_chunk = torch.exp(-dist_chunk / (node_features.size(1) ** 0.5))
+            edge_attr_list.append(weight_chunk)
+            
+        edge_attr = torch.cat(edge_attr_list)
 
         graph_label = patient_data['label']
         histodata = patient_data['histodata']
@@ -47,6 +68,7 @@ def radius_graph_creation(patient_dict, r=5):
         graph = Data(
             x=node_features,
             edge_index=edge_index,
+            edge_attr=edge_attr,
             y=torch.tensor([graph_label]),
         )
         graph.histodata = histodata

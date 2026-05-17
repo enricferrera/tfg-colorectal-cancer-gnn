@@ -47,10 +47,16 @@ def cosine_knn_graph_creation(patient_dict, k=8):
         # Create graph edges based on Cosine Similarity (via normalized Euclidean)
         edge_index = knn_graph(normalized_features, k=k, loop=True)
 
+        # Calculate edge attributes (cosine similarity)
+        # Since features are normalized, cosine similarity is the dot product
+        src, dst = edge_index
+        edge_attr = (normalized_features[src] * normalized_features[dst]).sum(dim=-1)
+
         # Assemble the graph data object (store the original unnormalized features for training)
         graph = Data(
             x=node_features,
             edge_index=edge_index,
+            edge_attr=edge_attr,
             y=torch.tensor([graph_label]),
         )
         graph.histodata = histodata
