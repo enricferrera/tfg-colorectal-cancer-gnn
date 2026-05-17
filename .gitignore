@@ -10,3 +10,7 @@ __pycache__/
 **/__pycache__/
 *.pt
 **/info/
+mlruns.db
+mlruns/
+**/mlruns.db
+**/mlruns/
