@@ -19,7 +19,7 @@ r_seed = 123
 fix_seeds(r_seed=r_seed)
 
 # Base paths
-npz_path = Path(__file__).resolve().parents[2] / "Data" / "cls_ALL"
+npz_path = Path(__file__).resolve().parents[2] / "Data" / "NEW_DATASET_cls_2048"
 
 def main():
     # Load metadata
@@ -35,8 +35,8 @@ def main():
     # print("\nCreating Euclidean KNN Graphs (k=5)...")
     # euclidean_knn_graph_creation(patient_dict, 1)
 
-    #print("\nCreating Cosine KNN Graphs (k=10)...")
-    #cosine_knn_graph_creation(patient_dict, 10)
+    print("\nCreating Cosine KNN Graphs (k=10)...")
+    cosine_knn_graph_creation(patient_dict, 10)
 
     #print("\nCreating Cosine KNN Graphs (k=50)...")
     #cosine_knn_graph_creation(patient_dict, 50)
@@ -47,8 +47,8 @@ def main():
     # print("\nCreating Radius Graphs (r=120)...")
     # radius_graph_creation(patient_dict, 120)
 
-    print("\nCreating Fully Connected Graphs...")
-    fully_connected_graph_creation(patient_dict)
+    #print("\nCreating Fully Connected Graphs...")
+    # fully_connected_graph_creation(patient_dict)
 
 if __name__ == '__main__':
     main()

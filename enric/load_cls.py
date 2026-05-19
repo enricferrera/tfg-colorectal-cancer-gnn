@@ -30,14 +30,14 @@ def load_cls_metadata(npz_path):
     slides_list = []
     coords_list = []
     paths_list = []
-    for i, link in enumerate(npz_path.iterdir()):
+    for i, link in enumerate(npz_path.glob("*.npz")):
 
         data = np.load(link, allow_pickle=True)
 
         features = data['embeddingCLS']
         features = torch.from_numpy(features)
 
-        affectation = data['label_list']
+        affectation = data['infiltrations']
         affectation = torch.from_numpy(affectation)
 
         patients = data['patient_list']
@@ -133,7 +133,7 @@ def load_cls_metadata(npz_path):
     })
 
     histopath_df['Budding'] = histopath_df['Budding'].replace(
-        {"Bd0": 0, "Bd1": 0, "bd0": 0, "Bd2": 1, "Bd3": 1, "Not applicable": 2}).infer_objects(copy=False)
+        {"Bd0": 0, "Bd1": 0, "bd0": 0, "bd1": 0, "Bd2": 1, "Bd3": 1, "bd2": 1, "bd3": 1, "Not applicable": 2}).infer_objects(copy=False)
 
     histopath_df['LVI'] = histopath_df['LVI'].replace(
         {"No": 0, "Yes": 1, "Bd2": 1, "Bd3": 1, "Not applicable": 2}).infer_objects(copy=False)
