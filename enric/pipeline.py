@@ -7,6 +7,8 @@ import torch
 import numpy as np
 import pandas as pd
 import mlflow
+import time
+import subprocess
 
 # Local application imports
 from enric import fix_seeds, load_cls_metadata, patient_dict_builder, calculate_class_weights, run_cross_validation_graph
@@ -64,17 +66,38 @@ experimentos = [
 # ==============================================================================
 all_results = []
 
+# Generate environment file once per benchmark execution
+req_path = Path(__file__).parent / "requirements.txt"
+try:
+    # Try using uv to export requirements
+    subprocess.run(["uv", "pip", "freeze"], stdout=open(req_path, "w"), check=True)
+except Exception:
+    # Fallback to standard pip if uv is not in path or fails
+    subprocess.run(["pip", "freeze"], stdout=open(req_path, "w"), check=True)
+
 for exp in experimentos:
+    start_time_exp = time.time()
     print(f"\n{'=' * 50}")
     print(f"STARTING EXPERIMENT: {exp['name']}")
     print(f"{'=' * 50}")
     
     with mlflow.start_run(run_name=exp['name']):
+        # Log environment artifact
+        mlflow.log_artifact(str(req_path))
+        
         # Log all configuration parameters for this experiment
         mlflow.log_params(exp)
         
+        # Log global environment and data parameters
+        mlflow.log_params({
+            "r_seed": r_seed,
+            "device": str(device),
+            "npz_path": str(npz_path),
+            "class_weights": weights.tolist()
+        })
+        
         try:
-            res = run_cross_validation_graph(
+            res, champion_model = run_cross_validation_graph(
                 base_graphs_dir=BASE_GRAPH_DIR,
                 graph_type=exp['graph_type'],
                 patient_list=patient_list,
@@ -93,6 +116,9 @@ for exp in experimentos:
                 patience=exp.get('patience', 10)
             )
             
+            # --- NEW: Save the Champion Model to the Parent Run ---
+            mlflow.pytorch.log_model(champion_model, artifact_path="champion_model")
+            
             # Save summary result for the final printed table
             graph_info = str(exp['graph_type'])
             if exp.get('knn_type'): graph_info += f"_{exp['knn_type']}"
@@ -105,13 +131,13 @@ for exp in experimentos:
                 "Graphs": graph_info
             }
             
-            # Log metrics to MLflow and add to summary
+            # Use the mean values for the final summary printout
             for metric, (mean, std) in res.items():
-                mlflow.log_metric(f"{metric}_mean", float(mean))
-                mlflow.log_metric(f"{metric}_std", float(std))
-                
                 summary[f"{metric}_mean"] = round(mean, 4)
                 summary[f"{metric}_std"] = round(std, 4)
+            
+            # Log total duration
+            mlflow.log_metric("total_duration_sec", time.time() - start_time_exp)
             
             all_results.append(summary)
             
@@ -121,6 +147,10 @@ for exp in experimentos:
             import traceback
             traceback.print_exc()
             continue
+
+# Cleanup temp requirements file
+if req_path.exists():
+    req_path.unlink()
 
 # ==============================================================================
 # FINAL RESULTS TABLE

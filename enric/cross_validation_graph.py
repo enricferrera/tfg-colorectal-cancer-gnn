@@ -2,12 +2,20 @@ import torch
 from torch_geometric.loader import DataLoader
 import numpy as np
 import pandas as pd
+import time
+import tempfile
+import copy
+from scipy import stats
+from torchinfo import summary as model_summary
+
 from sklearn.metrics import (
     recall_score, precision_score, f1_score, roc_auc_score, 
-    balanced_accuracy_score, matthews_corrcoef, average_precision_score, confusion_matrix
+    balanced_accuracy_score, matthews_corrcoef, average_precision_score, 
+    confusion_matrix, roc_curve, precision_recall_curve
 )
 from sklearn.model_selection import StratifiedKFold
 import mlflow
+import mlflow.pytorch
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -23,97 +31,90 @@ def run_cross_validation_graph(base_graphs_dir, graph_type, patient_list, label_
                                k=None, r=None, knn_type='euclidean', patience=10):
     """
     Orchestrator for GNN Cross-Validation.
-    Supports GCN and GAT models, and Mixed Precision to save VRAM.
+    Returns metrics and the best model found across all folds.
     """
-    # Construct the base path for the specific graph type
     graphs_dir = base_graphs_dir / graph_type / "graphs"
-    
-    if graph_type == 'knn':
-        graphs_dir = graphs_dir / knn_type
-    
-    if k is not None:
-        graphs_dir = graphs_dir / f"k_{k}"
-    elif r is not None:
-        graphs_dir = graphs_dir / f"r_{r}"
+    if graph_type == 'knn': graphs_dir = graphs_dir / knn_type
+    if k is not None: graphs_dir = graphs_dir / f"k_{k}"
+    elif r is not None: graphs_dir = graphs_dir / f"r_{r}"
 
     skf = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=0)
     
-    # Initialize metrics dictionary with additional advanced metrics
     metric_keys = [
         'recall_0', 'recall_1', 'precision_0', 'precision_1', 
         'f1_0', 'f1_1', 'auc', 'balanced_acc', 'mcc', 'auprc'
     ]
     metrics = {k: [] for k in metric_keys}
+    patient_level_results = []
+
+    # Champion Model Tracking
+    best_fold_auc = -1.0
+    champion_model_state = None
 
     patient_list = np.array(patient_list)
     label_list = np.array(label_list)
 
-    print(f"\n>>> Running Experiment: {model_type} on {graph_type} graphs ({graphs_dir.name})")
-    print(f">>> Config: hidden_ch={hidden_ch}, effective_batch={batch_size * minibatch_size}, mixed_precision={use_mixed_precision}")
+    print(f"\n>>> Running Experiment: {model_type} on {graph_type} graphs")
+
+    # --- 1. Model Complexity & GPU Stats ---
+    temp_model = GATWeight_batch(in_ch=1536, hidden_ch=hidden_ch, out_ch=2) if model_type.upper() == 'GAT' else GCNWithAgg(in_ch=1536, hidden_ch=hidden_ch, out_ch=2)
+    m_info = model_summary(temp_model, verbose=0)
+    mlflow.log_params({
+        "trainable_params": m_info.trainable_params,
+        "model_size_mb": m_info.total_params * 4 / (1024**2),
+        "gpu_name": torch.cuda.get_device_name(0) if torch.cuda.is_available() else "CPU"
+    })
+    del temp_model
 
     for fold_num, (tr_idx, va_idx) in enumerate(skf.split(patient_list, label_list)):
-        # Ensure VRAM is clean before starting each fold
+        fold_start_time = time.time()
         clean_vram()
         print(f"  Fold {fold_num+1}/{n_folds}...", end=" ", flush=True)
         
         with mlflow.start_run(run_name=f"Fold_{fold_num}", nested=True):
-            train_pats = patient_list[tr_idx]
-            val_pats = patient_list[va_idx]
+            mlflow.log_param("fold_num", fold_num)
             
-            # Loaders
-            train_ds = GraphDataset(graphs_dir, train_pats)
-            val_ds = GraphDataset(graphs_dir, val_pats)
-            train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True)
-            val_loader = DataLoader(val_ds, batch_size=batch_size, shuffle=False)
+            train_pats, val_pats = patient_list[tr_idx], patient_list[va_idx]
+            train_loader = DataLoader(GraphDataset(graphs_dir, train_pats), batch_size=batch_size, shuffle=True)
+            val_loader = DataLoader(GraphDataset(graphs_dir, val_pats), batch_size=batch_size, shuffle=False)
 
-            # Initialize requested model
             if model_type.upper() == 'GCN':
                 model = GCNWithAgg(in_ch=1536, hidden_ch=hidden_ch, out_ch=2).to(device)
-            elif model_type.upper() == 'GAT':
-                model = GATWeight_batch(in_ch=1536, hidden_ch=hidden_ch, out_ch=2).to(device)
             else:
-                raise ValueError(f"Unknown model_type: {model_type}")
+                model = GATWeight_batch(in_ch=1536, hidden_ch=hidden_ch, out_ch=2).to(device)
 
             optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
             loss_fn = torch.nn.CrossEntropyLoss(weight=weights.to(device))
-            
-            # GradScaler for Mixed Precision (FP16)
             scaler = torch.amp.GradScaler('cuda', enabled=use_mixed_precision) if 'cuda' in str(device) else None
-
-            # Early Stopping initialization
             early_stopping = EarlyStopping(patience=patience)
 
-            # Train loop
             for epoch in range(epochs):
                 train_loss = train_loop_graph(model, train_loader, optimizer, loss_fn, device, minibatch_size, scaler)
-                
-                # Validation at the end of each epoch
-                y_true_v, y_pred_v, y_scores_v, val_loss = val_loop_graph(model, val_loader, device, loss_fn)
-                
-                # Log metrics to MLflow for this fold
+                _, _, _, val_loss = val_loop_graph(model, val_loader, device, loss_fn)
                 mlflow.log_metric("train_loss", float(train_loss), step=epoch)
                 mlflow.log_metric("val_loss", float(val_loss), step=epoch)
-                
-                # Check Early Stopping
-                if early_stopping(val_loss, model):
-                    print(f"      Early stopping at epoch {epoch+1}")
-                    mlflow.set_tag("early_stopping", f"epoch_{epoch+1}")
-                    break
+                if early_stopping(val_loss, model): break
 
-                if (epoch + 1) % 5 == 0:
-                    print(f"      Epoch {epoch+1}/{epochs} - Train Loss: {train_loss:.4f} - Val Loss: {val_loss:.4f}")
-
-            # Load best model weights found during training
             if early_stopping.best_model_state is not None:
                 model.load_state_dict(early_stopping.best_model_state)
 
-            # Final Validation on the best model state
             y_true, y_pred, y_scores, _ = val_loop_graph(model, val_loader, device)
-            
-            # Record metrics
             fold_auc = roc_auc_score(y_true, y_scores)
             
-            # Helper to calculate and log metrics for this fold
+            # Champion Check
+            if fold_auc > best_fold_auc:
+                best_fold_auc = fold_auc
+                champion_model_state = copy.deepcopy(model.state_dict())
+
+            # Error Analysis data
+            for idx, p_id in enumerate(val_pats):
+                patient_level_results.append({
+                    "Patient_ID": p_id, "Fold": fold_num, "True_Label": y_true[idx],
+                    "Predicted_Label": y_pred[idx], "Prob": round(y_scores[idx], 4),
+                    "Is_Error": y_true[idx] != y_pred[idx]
+                })
+
+            # Record Fold Metrics
             fold_metrics = {
                 'recall_0': recall_score(y_true, y_pred, pos_label=0, zero_division=0),
                 'recall_1': recall_score(y_true, y_pred, pos_label=1, zero_division=0),
@@ -126,25 +127,43 @@ def run_cross_validation_graph(base_graphs_dir, graph_type, patient_list, label_
                 'mcc': matthews_corrcoef(y_true, y_pred),
                 'auprc': average_precision_score(y_true, y_scores)
             }
-            
             for k, v in fold_metrics.items():
                 metrics[k].append(v)
                 mlflow.log_metric(k, float(v))
 
-            # Generate and Log Confusion Matrix Plot
+            mlflow.log_metric("fold_duration_sec", time.time() - fold_start_time)
+            mlflow.log_metric("peak_vram_gb", torch.cuda.max_memory_reserved() / (1024**3))
+            mlflow.pytorch.log_model(model, artifact_path="model")
+
+            # Plots
             cm = confusion_matrix(y_true, y_pred)
-            fig, ax = plt.subplots(figsize=(5, 4))
-            sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', ax=ax, 
-                        xticklabels=['Class 0', 'Class 1'], yticklabels=['Class 0', 'Class 1'])
-            ax.set_title(f'Confusion Matrix - Fold {fold_num}')
-            ax.set_ylabel('True Label')
-            ax.set_xlabel('Predicted Label')
-            
-            mlflow.log_figure(fig, f"confusion_matrix_fold_{fold_num}.png")
-            plt.close(fig)
+            fig, ax = plt.subplots(figsize=(5, 4)); sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', ax=ax)
+            mlflow.log_figure(fig, f"plots/cm_fold_{fold_num}.png"); plt.close(fig)
 
-            print(f"Best Val AUC: {fold_auc:.4f}")
+    # --- Final Statistical Summary ---
+    results_summary = {}
+    for k, vals in metrics.items():
+        mean, std = np.mean(vals), np.std(vals)
+        ci_bound = 1.96 * (std / np.sqrt(n_folds))
+        results_summary[k] = (mean, std)
+        mlflow.log_metric(f"{k}_mean", float(mean))
+        mlflow.log_metric(f"{k}_95_ci", float(ci_bound))
 
-    # Summary
-    results_summary = {k: (np.mean(vals), np.std(vals)) for k, vals in metrics.items()}
-    return results_summary
+    # Boxplots
+    plt.figure(figsize=(10, 6)); sns.boxplot(data=pd.DataFrame(metrics)); plt.xticks(rotation=45)
+    mlflow.log_figure(plt.gcf(), "plots/metric_boxplots.png"); plt.close()
+
+    # Error CSV
+    df_errors = pd.DataFrame(patient_level_results)
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as tmp:
+        df_errors.to_csv(tmp.name, index=False)
+        mlflow.log_artifact(tmp.name, "patient_level_analysis.csv")
+
+    # Reconstruct Champion model
+    if model_type.upper() == 'GCN':
+        champ_model = GCNWithAgg(in_ch=1536, hidden_ch=hidden_ch, out_ch=2).to(device)
+    else:
+        champ_model = GATWeight_batch(in_ch=1536, hidden_ch=hidden_ch, out_ch=2).to(device)
+    champ_model.load_state_dict(champion_model_state)
+
+    return results_summary, champ_model
