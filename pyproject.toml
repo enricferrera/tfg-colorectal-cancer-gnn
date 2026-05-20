@@ -3,7 +3,7 @@ name = "pt1diagnosis"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.13,<3.14"
+requires-python = ">=3.12,<3.13"
 # ADD THE LIBRARIES HERE:
 dependencies = [
     "torch",
@@ -18,7 +18,10 @@ dependencies = [
     "torch-geometric",
     "openpyxl>=3.1.5",
     "pyrefly>=0.45.0",
-    "torch-cluster>=1.6.3",
+    "torch-cluster",
+    "torch-scatter",
+    "torch-sparse",
+    "torch-spline-conv",
     "mlflow>=3.12.0",
     "torchinfo>=1.8.0",
 ]
@@ -26,8 +29,13 @@ dependencies = [
 [[tool.uv.index]]
 name = "pytorch"
 url = "https://download.pytorch.org/whl/cu121"
-# Change explicit to false for a moment to make the first install easier
 explicit = false
+
+[tool.uv.sources]
+torch-cluster = { url = "https://data.pyg.org/whl/torch-2.5.0%2Bcu121/torch_cluster-1.6.3%2Bpt25cu121-cp312-cp312-linux_x86_64.whl" }
+torch-scatter = { url = "https://data.pyg.org/whl/torch-2.5.0%2Bcu121/torch_scatter-2.1.2%2Bpt25cu121-cp312-cp312-linux_x86_64.whl" }
+torch-sparse = { url = "https://data.pyg.org/whl/torch-2.5.0%2Bcu121/torch_sparse-0.6.18%2Bpt25cu121-cp312-cp312-linux_x86_64.whl" }
+torch-spline-conv = { url = "https://data.pyg.org/whl/torch-2.5.0%2Bcu121/torch_spline_conv-1.2.2%2Bpt25cu121-cp312-cp312-linux_x86_64.whl" }
 
 [dependency-groups]
 dev = [
