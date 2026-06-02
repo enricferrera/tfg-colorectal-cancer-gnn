@@ -258,7 +258,3 @@ def patient_dict_builder(features, affectation, hospitals, patients, slides, coo
         print(f"Min patches per patient: {min(patches_per_patient)}")
 
     return patient_dict
-
-
-
-    return patient_dict
