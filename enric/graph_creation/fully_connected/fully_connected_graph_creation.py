@@ -47,7 +47,7 @@ def _fully_connected_worker(patient_item, graph_dir, device):
     return patient_id
 
 
-def fully_connected_graph_creation(patient_dict, num_workers=4):
+def fully_connected_graph_creation(patient_dict, num_workers=2):
     """
     Iterates through all the patients, creates a fully connected graph for each,
     and saves each graph to disk.
@@ -62,16 +62,16 @@ def fully_connected_graph_creation(patient_dict, num_workers=4):
     # --- 1. Setup the Output Directory ---
     graph_dir = Path(__file__).parent / "graphs"
     graph_dir.mkdir(parents=True, exist_ok=True)
-
+    
     start_time = time.time()
     print(f"Starting parallel fully connected graph creation for {len(patient_dict)} patients on {device}...")
 
     # --- 2. Process Patients in Parallel ---
     # We use 'spawn' to ensure CUDA contexts are handled correctly in child processes
     ctx = mp.get_context('spawn')
-
+    
     worker_fn = partial(_fully_connected_worker, graph_dir=graph_dir, device=device)
-
+    
     total_patients = len(patient_dict)
     with ctx.Pool(processes=num_workers) as pool:
         for i, patient_id in enumerate(pool.imap_unordered(worker_fn, patient_dict.items())):
@@ -85,9 +85,3 @@ def fully_connected_graph_creation(patient_dict, num_workers=4):
     print(f"Total time: {duration // 60:.0f}m {duration % 60:.0f}s")
     print("-" * 50)
 
-    duration = end_time - start_time
-    print("-" * 50)
-    print(f"Fully connected graph creation complete.")
-    print(f"Saved {len(list(graph_dir.glob('*.pt')))} graphs to '{graph_dir}' directory.")
-    print(f"Total time: {duration // 60:.0f}m {duration % 60:.0f}s")
-    print("-" * 50)

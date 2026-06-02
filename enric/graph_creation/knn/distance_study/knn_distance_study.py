@@ -186,7 +186,7 @@ def analyze_neighbor_density(patient_dict):
 # MAIN EXECUTION
 # ==================================================================
 if __name__ == '__main__':
-    npz_path = root_path / "Data" / "cls_ALL"
+    npz_path = root_path / "Data" / "NEW_DATASET_cls_2048"
     pat_nx_dict, pat_histodata_dict, features, affectation, hospitals, patients, slides, coords = load_cls_metadata(npz_path)
     patient_dict = patient_dict_builder(features, affectation, hospitals, patients, slides, coords, pat_nx_dict, pat_histodata_dict)
 

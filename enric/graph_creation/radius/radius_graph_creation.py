@@ -20,8 +20,8 @@ def _radius_worker(patient_item, r, graph_dir, device):
     # Extract patch-level features and move to GPU
     node_features = torch.stack([m['features'] for m in patient_data['megapatches']]).to(device)
 
-    # Create graph edges based on a set radius from a node in the FEATURE space
-    # This will run on GPU automatically
+    # Create graph edges based on a set radius using the native library function
+    # This runs on GPU automatically
     edge_index = radius_graph(node_features, r=r, loop=True)
 
     # Calculate edge attributes natively on GPU
@@ -48,7 +48,7 @@ def _radius_worker(patient_item, r, graph_dir, device):
     return patient_id
 
 
-def radius_graph_creation(patient_dict, r=5, num_workers=4):
+def radius_graph_creation(patient_dict, r=5, num_workers=2):
     """
     Iterates through all the patients, creates a connected graph based on a set radius for each,
     and saves each graph to disk.

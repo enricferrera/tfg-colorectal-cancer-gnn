@@ -23,7 +23,6 @@ def _euclidean_knn_worker(patient_item, k, graph_dir, device):
     histodata = patient_data['histodata']
 
     # Create graph edges based on the K-Nearest Neighbors in the FEATURE space
-    # Note: knn_graph computes directed edges from k-nearest neighbors.
     # This runs on GPU automatically if node_features is on CUDA
     edge_index = knn_graph(node_features, k=k, loop=True)
 
@@ -50,7 +49,7 @@ def _euclidean_knn_worker(patient_item, k, graph_dir, device):
     return patient_id
 
 
-def euclidean_knn_graph_creation(patient_dict, k=8, num_workers=4):
+def euclidean_knn_graph_creation(patient_dict, k=8, num_workers=2):
     """
     Iterates through all the patients, creates a graph for each patient using
     KNN on CLS features, and saves each graph to disk.

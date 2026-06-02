@@ -20,15 +20,14 @@ def _cosine_knn_worker(patient_item, k, graph_dir, device):
     # Extract patch-level features and move to GPU
     node_features = torch.stack([m['features'] for m in patient_data['megapatches']]).to(device)
     
-    # L2-Normalize the features. Euclidean distance on L2-normalized vectors 
-    # is mathematically equivalent to ranking by Cosine Similarity.
+    # L2-Normalize the features for Cosine Similarity
     normalized_features = F.normalize(node_features, p=2, dim=1)
 
     graph_label = patient_data['label']
     histodata = patient_data['histodata']
 
-    # Create graph edges based on Cosine Similarity (via normalized Euclidean)
-    # This will automatically run on GPU if normalized_features is a CUDA tensor
+    # Create graph edges based on Cosine Similarity using the native library function
+    # This runs on GPU automatically
     edge_index = knn_graph(normalized_features, k=k, loop=True)
 
     # Calculate edge attributes (cosine similarity)
@@ -52,7 +51,7 @@ def _cosine_knn_worker(patient_item, k, graph_dir, device):
     return patient_id
 
 
-def cosine_knn_graph_creation(patient_dict, k=8, num_workers=4):
+def cosine_knn_graph_creation(patient_dict, k=8, num_workers=2):
     """
     Creates a graph for each patient using KNN based on Cosine Similarity
     of the CLS features, and saves each graph to disk.

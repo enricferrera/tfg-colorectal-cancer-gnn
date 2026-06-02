@@ -32,11 +32,11 @@ def main():
     # --- Graph creation ---
     # Uncomment the ones you want to run
     
-    # print("\nCreating Euclidean KNN Graphs (k=5)...")
-    # euclidean_knn_graph_creation(patient_dict, 1)
+    print("\nCreating Euclidean KNN Graphs (k=5)...")
+    euclidean_knn_graph_creation(patient_dict, 1)
 
-    print("\nCreating Cosine KNN Graphs (k=10)...")
-    cosine_knn_graph_creation(patient_dict, 10)
+    # print("\nCreating Cosine KNN Graphs (k=10)...")
+    # cosine_knn_graph_creation(patient_dict, 10)
 
     #print("\nCreating Cosine KNN Graphs (k=50)...")
     #cosine_knn_graph_creation(patient_dict, 50)
