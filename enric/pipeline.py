@@ -16,13 +16,14 @@ from enric import fix_seeds, load_cls_metadata, patient_dict_builder, calculate_
 # ------ GLOBAL CONFIGURATION -------
 import os
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
+mlflow.enable_system_metrics_logging() # <-- Added to track CPU/GPU/RAM automatically
 r_seed = 123
 fix_seeds(r_seed=r_seed)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Base paths
 BASE_GRAPH_DIR = Path(__file__).parent / "graph_creation"
-npz_path = Path(__file__).resolve().parent.parent / "Data" / "cls_ALL"
+npz_path = Path(__file__).resolve().parent.parent / "Data" / "NEW_DATASET_cls_2048"
 
 # Load metadata once for all experiments
 pat_nx_dict, pat_histodata_dict, features, affectation, hospitals, patients, slides, coords = load_cls_metadata(npz_path)
@@ -53,7 +54,7 @@ experimentos = [
         "graph_type": "knn",
         "knn_type": "cosine",
         "k": 10,
-        "hidden_ch": 16,
+        "hidden_ch": 512,
         "epochs": 2,
         "use_amp": True,
         "batch_size": 1,
