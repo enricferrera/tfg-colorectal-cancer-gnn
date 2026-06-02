@@ -232,5 +232,33 @@ def patient_dict_builder(features, affectation, hospitals, patients, slides, coo
         else:
             patients_not_found.add(pat)
     print(len(patient_dict), "patients")
+    
+    unique_slides = set()
+    slides_per_patient = []
+    patches_per_patient = []
+    
+    for pat in patient_dict:
+        patient_slides = set()
+        num_patches = len(patient_dict[pat]["megapatches"])
+        patches_per_patient.append(num_patches)
+        
+        for mp in patient_dict[pat]["megapatches"]:
+            slide_id = mp["slide"]
+            unique_slides.add(slide_id)
+            patient_slides.add(slide_id)
+        slides_per_patient.append(len(patient_slides))
+
+    print(len(unique_slides), "slides")
+    if slides_per_patient:
+        print(f"Max slides per patient: {max(slides_per_patient)}")
+        print(f"Min slides per patient: {min(slides_per_patient)}")
+    
+    if patches_per_patient:
+        print(f"Max patches per patient: {max(patches_per_patient)}")
+        print(f"Min patches per patient: {min(patches_per_patient)}")
+
+    return patient_dict
+
+
 
     return patient_dict

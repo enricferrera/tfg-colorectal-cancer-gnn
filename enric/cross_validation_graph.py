@@ -30,8 +30,7 @@ def run_cross_validation_graph(base_graphs_dir, graph_type, patient_list, label_
                                minibatch_size=10, hidden_ch=128, use_mixed_precision=True,
                                k=None, r=None, knn_type='euclidean', patience=10):
     """
-    Orchestrator for GNN Cross-Validation.
-    Returns metrics and the best model found across all folds.
+
     """
     graphs_dir = base_graphs_dir / graph_type / "graphs"
     if graph_type == 'knn': graphs_dir = graphs_dir / knn_type
