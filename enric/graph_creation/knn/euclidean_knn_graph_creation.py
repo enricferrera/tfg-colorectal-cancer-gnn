@@ -31,6 +31,7 @@ def _euclidean_knn_worker(patient_item, k, graph_dir, device):
     dist = torch.norm(node_features[src] - node_features[dst], p=2, dim=-1)
     # Use a Gaussian kernel for weights, sigma can be tuned. 
     # Here we use the sqrt of feature dimension as a heuristic scale.
+    # Leaves the value between 0 and 1
     edge_attr = torch.exp(-dist / (node_features.size(1) ** 0.5))
 
     # Assemble the graph data object

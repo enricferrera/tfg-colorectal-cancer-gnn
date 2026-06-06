@@ -30,25 +30,38 @@ def main():
     patient_dict = patient_dict_builder(features, affectation, hospitals, patients, slides, coords, pat_nx_dict, pat_histodata_dict)
 
     # --- Graph creation ---
-    # Uncomment the ones you want to run
-    
-    print("\nCreating Euclidean KNN Graphs (k=5)...")
-    euclidean_knn_graph_creation(patient_dict, 1)
 
-    # print("\nCreating Cosine KNN Graphs (k=10)...")
-    # cosine_knn_graph_creation(patient_dict, 10)
+    # 1. Radius Graphs (60 to 80)
+    for r in range(60, 81):
+        try:
+            print(f"\n[{r}/80] Creating Radius Graphs (r={r})...")
+            radius_graph_creation(patient_dict, r=r)
+        except Exception as e:
+            print(f"\nFAILED Radius r={r}: {e}")
 
-    #print("\nCreating Cosine KNN Graphs (k=50)...")
-    #cosine_knn_graph_creation(patient_dict, 50)
+    # 2. KNN Graphs (Euclidean & Cosine)
+    k_values = list(range(8, 41)) + [50, 100]
+    for k in k_values:
+        # Euclidean
+        try:
+            print(f"\n[k={k}] Creating Euclidean KNN Graphs...")
+            euclidean_knn_graph_creation(patient_dict, k=k)
+        except Exception as e:
+            print(f"\nFAILED Euclidean k={k}: {e}")
 
-    #print("\nCreating Cosine KNN Graphs (k=100)...")
-    #cosine_knn_graph_creation(patient_dict, 100)
+        # Cosine
+        try:
+            print(f"\n[k={k}] Creating Cosine KNN Graphs...")
+            cosine_knn_graph_creation(patient_dict, k=k)
+        except Exception as e:
+            print(f"\nFAILED Cosine k={k}: {e}")
 
-    # print("\nCreating Radius Graphs (r=120)...")
-    # radius_graph_creation(patient_dict, 120)
-
-    #print("\nCreating Fully Connected Graphs...")
-    # fully_connected_graph_creation(patient_dict)
+    # 3. Fully Connected Graphs
+    try:
+        print("\nCreating Fully Connected Graphs...")
+        fully_connected_graph_creation(patient_dict)
+    except Exception as e:
+        print(f"\nFAILED Fully Connected: {e}")
 
 if __name__ == '__main__':
     main()
