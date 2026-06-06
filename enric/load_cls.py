@@ -29,7 +29,6 @@ def load_cls_metadata(npz_path):
     hosps_list = []
     slides_list = []
     coords_list = []
-    paths_list = []
     for i, link in enumerate(npz_path.glob("*.npz")):
 
         data = np.load(link, allow_pickle=True)
@@ -56,15 +55,6 @@ def load_cls_metadata(npz_path):
         for coord_pack in coords:
             coords_list.append(coord_pack[0])
 
-        """
-        print("------ Array info ----------")
-        print(f"size of CLS: {len(features)}")
-        print(f"size of affectations: {len(affectation)}")
-        print(f"size of patients: {len(patients)}")
-        print(f"size of hospitals: {len(hospitals)}")
-        print(f"size of slides: {len(slides)}")
-        """
-
     features = torch.cat(tensors_list, dim=0)
     print("Features: ", features.shape)
 
@@ -72,7 +62,6 @@ def load_cls_metadata(npz_path):
     print("Y: ", affectation.shape)
 
     patients = np.concatenate(patients_list)
-
     print("Patients: ", np.unique(patients).shape[0])
 
     hospitals = np.concatenate(hosps_list)
@@ -83,8 +72,6 @@ def load_cls_metadata(npz_path):
 
     coords = np.stack(coords_list, axis=0)
     print("Coords: ", len(coords))
-
-    slides = np.concatenate(slides_list)
     print("Patches: ", features.shape[0])
 
     ########## Llegim les metadates de cada pacient #################################
@@ -154,22 +141,15 @@ def load_cls_metadata(npz_path):
     histopath_df['Depth'] = histopath_df['Depth'].where(histopath_df['Depth'] <= 1, 0)
     histopath_df['Depth'] = histopath_df['Depth'].where(histopath_df['Depth'] > 1, 1)
 
-    # histopath_df['Mucinous']=histopath_df['Mucinous'].replace({"No":0, "Yes":1})
-
     histopath_df = histopath_df.replace({np.nan: 2})
 
     # Filtrem els pacients amb diagnostic NX
     histopath_df = histopath_df[histopath_df["PATHOLOGIST SCORE"] != -1]
 
     pat_histo = histopath_df["Patient_CODE"]
-
     nx_label = histopath_df["PATHOLOGIST SCORE"]
     histo_data = histopath_df[["Budding", "LVI", "Degree", "VRM", "PI", "Depth", "HRM"]]
 
-    # print("what: ", len(pat_histo))
-    # print("doublew: ", pd.Series(patients).value_counts())
-
-    ## FILTREM PACIENTS NX Baixem de 401 a 370.
     pat_nx_dict = {str(key): int(value) for key, value in zip(pat_histo, nx_label)}
     pat_histodata_dict = {str(key): value for key, value in zip(pat_histo, histo_data.values)}
 
@@ -179,46 +159,21 @@ def load_cls_metadata(npz_path):
 def patient_dict_builder(features, affectation, hospitals, patients, slides, coords, pat_nx_dict, pat_histodata_dict):
     """
     Groups patch-level data into a hierarchical dictionary organized by patient.
-
-    Args:
-        features (torch.Tensor): The full tensor of image embeddings.
-        affectation (torch.Tensor): The full tensor of patch-level tumor density.
-        hospitals (np.ndarray): Array of hospital names for every patch.
-        patients (np.ndarray): Array of patient IDs for every patch.
-        slides (np.ndarray): Array of slide IDs for every patch.
-        coords (np.ndarray): Array of spatial coordinates for every patch.
-        pat_nx_dict (dict): Dictionary mapping Patient IDs to metastasis labels.
-        pat_histodata_dict (dict): Dictionary mapping Patient IDs to clinical metadata arrays.
-
-    Returns:
-        dict: A dictionary where each key is a Patient ID and the value is a dictionary 
-              containing 'label', 'histodata', and a 'megapatches' list of patch data.
     """
 
-    patients_not_found = set()
     patient_dict = {}
-    for i, datapoint in enumerate(patients):
-        hosp = hospitals[i]
-        pat = patients[i]
-
+    for i, pat in enumerate(patients):
         if pat in pat_nx_dict:
-
             label = int(pat_nx_dict[pat])
             histodata = np.array(pat_histodata_dict[pat]).astype(float)
 
-            affect_percent = affectation[i]
-            afect_label = affect_percent
-
-            ######################################
-
             megapatch_dict = {
-                'hospital': hosp,
+                'hospital': hospitals[i],
                 'patient': pat,
-                'affectation': afect_label,
+                'affectation': affectation[i],
                 'features': features[i],
                 'coords': coords[i],
                 'slide': slides[i],
-
             }
 
             if pat not in patient_dict:
@@ -229,8 +184,7 @@ def patient_dict_builder(features, affectation, hospitals, patients, slides, coo
                 }
 
             patient_dict[pat]['megapatches'].append(megapatch_dict)
-        else:
-            patients_not_found.add(pat)
+
     print(len(patient_dict), "patients")
     
     unique_slides = set()

@@ -146,6 +146,7 @@ def run_cross_validation_graph(base_graphs_dir, graph_type, patient_list, label_
         ci_bound = 1.96 * (std / np.sqrt(n_folds))
         results_summary[k] = (mean, std)
         mlflow.log_metric(f"{k}_mean", float(mean))
+        mlflow.log_metric(f"{k}_std", float(std))
         mlflow.log_metric(f"{k}_95_ci", float(ci_bound))
 
     # Boxplots
