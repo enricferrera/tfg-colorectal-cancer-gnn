@@ -6,8 +6,8 @@ readme = "README.md"
 requires-python = ">=3.12,<3.13"
 # ADD THE LIBRARIES HERE:
 dependencies = [
-    "torch",
-    "torchvision",
+    "torch==2.5.0",
+    "torchvision==0.20.0",
     "numpy",
     "pandas",
     "scikit-learn",
@@ -26,6 +26,7 @@ dependencies = [
     "torchinfo>=1.8.0",
     "scipy-stubs~=1.17.1",
     "psutil>=7.2.2",
+    "optuna>=4.9.0",
 ]
 
 [[tool.uv.index]]

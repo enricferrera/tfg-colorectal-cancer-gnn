@@ -208,6 +208,18 @@ wheels = [
 ]
 
 [[package]]
+name = "colorlog"
+version = "6.10.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "colorama", marker = "sys_platform == 'win32'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a2/61/f083b5ac52e505dfc1c624eafbf8c7589a0d7f32daa398d2e7590efa5fda/colorlog-6.10.1.tar.gz", hash = "sha256:eb4ae5cb65fe7fec7773c2306061a8e63e02efc2c72eba9d27b0fa23c94f1321", size = 17162, upload-time = "2025-10-16T16:14:11.978Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/6d/c1/e419ef3723a074172b68aaa89c9f3de486ed4c2399e2dbd8113a4fdcaf9e/colorlog-6.10.1-py3-none-any.whl", hash = "sha256:2d7e8348291948af66122cff006c9f8da6255d224e7cf8e37d8de2df3bad8c9c", size = 11743, upload-time = "2025-10-16T16:14:10.512Z" },
+]
+
+[[package]]
 name = "commitizen"
 version = "4.13.9"
 source = { registry = "https://pypi.org/simple" }
@@ -1062,6 +1074,24 @@ wheels = [
 ]
 
 [[package]]
+name = "optuna"
+version = "4.9.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "alembic" },
+    { name = "colorlog" },
+    { name = "numpy" },
+    { name = "packaging" },
+    { name = "pyyaml" },
+    { name = "sqlalchemy" },
+    { name = "tqdm" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f4/aa/05f5e3f662cc96a4c478fc3446b8ed6359825a2b504ecb614a9ac84e4a4d/optuna-4.9.0.tar.gz", hash = "sha256:b322e5cbdf1655fb84c37646c4a7a1f391de1b47806bbe222e015825d0a82b87", size = 485834, upload-time = "2026-06-01T06:23:30.424Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ab/f3/e5fcd5d9b15771ed6dc10e3a7eeddc672e418f4f4c4653d216cc1d857e2d/optuna-4.9.0-py3-none-any.whl", hash = "sha256:f52f3be6148654850c92a5860d398fd88ec6b2c84ab68d9c3d07dcff02e7afee", size = 425553, upload-time = "2026-06-01T06:23:28.804Z" },
+]
+
+[[package]]
 name = "optype"
 version = "0.17.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1228,6 +1258,7 @@ dependencies = [
     { name = "mlflow" },
     { name = "numpy" },
     { name = "openpyxl" },
+    { name = "optuna" },
     { name = "pandas" },
     { name = "pillow" },
     { name = "psutil" },
@@ -1259,6 +1290,7 @@ requires-dist = [
     { name = "mlflow", specifier = ">=3.12.0" },
     { name = "numpy" },
     { name = "openpyxl", specifier = ">=3.1.5" },
+    { name = "optuna", specifier = ">=4.9.0" },
     { name = "pandas" },
     { name = "pillow" },
     { name = "psutil", specifier = ">=7.2.2" },
@@ -1267,14 +1299,14 @@ requires-dist = [
     { name = "scikit-learn" },
     { name = "scipy-stubs", specifier = "~=1.17.1" },
     { name = "seaborn" },
-    { name = "torch" },
+    { name = "torch", specifier = "==2.5.0" },
     { name = "torch-cluster", url = "https://data.pyg.org/whl/torch-2.5.0%2Bcu121/torch_cluster-1.6.3%2Bpt25cu121-cp312-cp312-linux_x86_64.whl" },
     { name = "torch-geometric" },
     { name = "torch-scatter", url = "https://data.pyg.org/whl/torch-2.5.0%2Bcu121/torch_scatter-2.1.2%2Bpt25cu121-cp312-cp312-linux_x86_64.whl" },
     { name = "torch-sparse", url = "https://data.pyg.org/whl/torch-2.5.0%2Bcu121/torch_sparse-0.6.18%2Bpt25cu121-cp312-cp312-linux_x86_64.whl" },
     { name = "torch-spline-conv", url = "https://data.pyg.org/whl/torch-2.5.0%2Bcu121/torch_spline_conv-1.2.2%2Bpt25cu121-cp312-cp312-linux_x86_64.whl" },
     { name = "torchinfo", specifier = ">=1.8.0" },
-    { name = "torchvision" },
+    { name = "torchvision", specifier = "==0.20.0" },
 ]
 
 [package.metadata.requires-dev]
@@ -1714,7 +1746,7 @@ wheels = [
 
 [[package]]
 name = "torch"
-version = "2.5.1+cu121"
+version = "2.5.0+cu121"
 source = { registry = "https://download.pytorch.org/whl/cu121" }
 dependencies = [
     { name = "filelock" },
@@ -1738,8 +1770,8 @@ dependencies = [
     { name = "typing-extensions" },
 ]
 wheels = [
-    { url = "https://download-r2.pytorch.org/whl/cu121/torch-2.5.1%2Bcu121-cp312-cp312-linux_x86_64.whl", hash = "sha256:222be02548c2e74a21a8fbc8e5b8d2eef9f9faee865d70385d2eb1b9aabcbc76", upload-time = "2024-10-29T23:20:25Z" },
-    { url = "https://download-r2.pytorch.org/whl/cu121/torch-2.5.1%2Bcu121-cp312-cp312-win_amd64.whl", hash = "sha256:473d76257636c66b22cbfac6f616d6b522ef3d3473c13decb1afda22a7b059eb", upload-time = "2024-10-29T23:20:59Z" },
+    { url = "https://download-r2.pytorch.org/whl/cu121/torch-2.5.0%2Bcu121-cp312-cp312-linux_x86_64.whl", hash = "sha256:c4e0eb78c24d6991db93d86f06809edb10ac15220363b04ef18e22da50f059fe", upload-time = "2024-10-17T22:27:36Z" },
+    { url = "https://download-r2.pytorch.org/whl/cu121/torch-2.5.0%2Bcu121-cp312-cp312-win_amd64.whl", hash = "sha256:47c7c44710bc91f1bd1a8012b4e43da57ca6e71589296bba146c1b18f2639efe", upload-time = "2024-10-17T22:28:09Z" },
 ]
 
 [[package]]
@@ -1841,16 +1873,16 @@ wheels = [
 
 [[package]]
 name = "torchvision"
-version = "0.2.0"
+version = "0.20.0+cu121"
 source = { registry = "https://download.pytorch.org/whl/cu121" }
 dependencies = [
     { name = "numpy" },
     { name = "pillow" },
-    { name = "six" },
     { name = "torch" },
 ]
 wheels = [
-    { url = "https://download-r2.pytorch.org/whl/torchvision-0.2.0-py2.py3-none-any.whl", hash = "sha256:4da0ffb8559430c452e47efb35be36460c9d8b81747c214854a520b5f3364961", upload-time = "2023-10-06T21:47:35Z" },
+    { url = "https://download-r2.pytorch.org/whl/cu121/torchvision-0.20.0%2Bcu121-cp312-cp312-linux_x86_64.whl", hash = "sha256:e794f7728dd5cec0d9bfa12749019d072a841e8dc2cdc1aba09afc63c5bb7ec3", upload-time = "2024-10-17T22:33:02Z" },
+    { url = "https://download-r2.pytorch.org/whl/cu121/torchvision-0.20.0%2Bcu121-cp312-cp312-win_amd64.whl", hash = "sha256:2d40dd35b287ba557f115a2881fe6304c4693e0e7147eb1be963da46b955b2c6", upload-time = "2024-10-17T22:33:02Z" },
 ]
 
 [[package]]

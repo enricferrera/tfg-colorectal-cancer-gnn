@@ -8,31 +8,54 @@ This repository contains the primary experimental framework and research modules
 
 ## Technical Architecture
 
-The core research logic is contained within the enric/ directory, organized into modular components for data processing, graph construction, and model training.
+The core research logic is contained within the `src/` directory, organized into modular components for data processing, graph construction, and model training.
 
 ### 1. Data Processing and Loading
-*   load_cls.py: Integrates deep learning embeddings (CLS tokens) with clinical metadata, managing patient-level diagnostic mapping (N0 vs. N1).
-*   dataset/graph_loaders.py: Implements a custom PyTorch Geometric dataset that handles pre-generated graph objects and dynamic feature linking.
-*   calculate_class_weights.py: Addresses class imbalance by calculating loss function weights based on patient distribution.
+*   `src/dataset/load_cls.py`: Integrates deep learning embeddings (CLS tokens) with clinical metadata, managing patient-level diagnostic mapping (N0 vs. N1).
+*   `src/dataset/graph_loaders.py`: Implements a custom PyTorch Geometric dataset that handles pre-generated graph objects and dynamic feature linking.
+*   `src/utils/class_weights.py`: Addresses class imbalance by calculating loss function weights based on patient distribution.
 
-### 2. Graph Construction (enric/graph_creation/)
+### 2. Graph Construction (`src/graphs/`)
 A suite of graph generation modules optimized for histopathological spatial modeling:
 *   Connectivity: Support for Euclidean k-NN, Cosine-Similarity k-NN, Radius-based, and Fully Connected graphs.
 *   Optimization: GPU-accelerated versions for large-scale datasets and CPU-parallel alternatives for general compatibility.
-*   Analysis: Tools in distance_study/ for analyzing feature distributions to optimize graph hyperparameters.
+*   Analysis: Tools in `src/graphs/knn/distance_study/` for analyzing feature distributions to optimize graph hyperparameters.
 
-### 3. Model Architectures (enric/models/)
-*   GATWeight_batch: Graph Attention Network that utilizes edge similarities as attributes to weight message passing.
-*   GCNWithAgg: Graph Convolutional Network with global mean pooling for patient-level representation.
-*   Hierarchical Pooling: Implementation of TopKPooling layers to capture multi-scale tissue structures.
+### 3. Model Architectures (`src/models/`)
+*   `models_Graph.py`: Contains various GNN architectures:
+    *   GATWeight_batch: Graph Attention Network that utilizes edge similarities as attributes to weight message passing.
+    *   GCNWithAgg: Graph Convolutional Network with global mean pooling for patient-level representation.
+    *   Hierarchical Pooling: Implementation of TopKPooling layers to capture multi-scale tissue structures.
 
 ### 4. Experimental Pipeline
-*   pipeline.py: The central execution script for running multi-experiment GNN benchmarks.
-*   cross_validation_graph.py: Implements Stratified 10-Fold Cross-Validation with full MLflow integration.
-*   Training Loops: Modular implementations of training and validation logic with support for Mixed Precision (AMP).
+*   `src/main.py`: The central execution script for running multi-experiment GNN benchmarks.
+*   `src/training/cross_validation.py`: Implements Stratified 10-Fold Cross-Validation with full MLflow integration.
+*   Training Loops: Modular implementations of training and validation logic in `src/training/graph_loops.py` with support for Mixed Precision (AMP).
 
-### 5. Advanced Visualization (enric/t_SNE/)
-*   t_SNE.py: Generates stratified t-SNE projections to visualize feature space clustering across tumor regions and patient categories.
+### 5. Advanced Visualization (`src/visualization/`)
+*   `src/visualization/t_SNE.py`: Generates stratified t-SNE projections to visualize feature space clustering across tumor regions and patient categories.
+
+---
+
+## Project Structure
+
+```text
+PT1Diagnosis/
+├── data/               # Raw and processed datasets (ignored by git)
+├── docs/               # Project documentation and research papers
+├── results/            # Output plots, metrics, and MLflow runs
+├── src/                # Source code
+│   ├── analysis/       # Post-hoc analysis scripts
+│   ├── dataset/        # Data loading and preprocessing
+│   ├── graphs/         # Graph construction pipelines
+│   ├── models/         # GNN model definitions
+│   ├── training/       # Training loops and cross-validation
+│   ├── utils/          # Helper utilities (seeds, weights, etc.)
+│   └── visualization/  # Visualization tools (t-SNE)
+├── tests/              # Unit tests
+├── pyproject.toml      # Project configuration and dependencies
+└── README.md           # This file
+```
 
 ---
 
@@ -50,15 +73,15 @@ uv sync
 ### Typical Workflow
 1.  Graph Generation:
     ```bash
-    python enric/graph_creation/graph_creation_pipeline.py
+    python src/graphs/graph_creation_pipeline.py
     ```
 2.  Benchmarking:
     ```bash
-    python enric/pipeline.py
+    python src/main.py
     ```
 3.  Experimental Analysis:
     ```bash
-    mlflow ui --backend-store-uri sqlite:///enric/mlruns.db
+    mlflow ui --backend-store-uri sqlite:///results/mlruns.db
     ```
 
 ---
