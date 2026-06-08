@@ -66,7 +66,7 @@ uv sync
 ## Author
 
 Enric Ferrera González
-Institution: [Insert University Name]
+Institution: Universitat Autònoma de Barcelona 
 Date: June 2026
 
 ---

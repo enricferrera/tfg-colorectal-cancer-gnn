@@ -1,11 +1,18 @@
+import sys
 from pathlib import Path
 from torch_geometric.loader import DataLoader
-from dataset import GraphDataset
+
+# Add src to path for imports
+current_dir = Path(__file__).resolve().parent
+if str(current_dir.parent / "src") not in sys.path:
+    sys.path.append(str(current_dir.parent / "src"))
+
+from dataset.graph_loaders import GraphDataset
 
 def test_loading():
     # 1. Configuración de rutas
     # Ajusta esta ruta a donde realmente tengas los grafos (ej: KNN, Radius o Fully Connected)
-    graphs_dir = Path("../graph_creation/fully_connected/graphs")
+    graphs_dir = current_dir.parent / "src" / "graphs" / "fully_connected" / "graphs"
 
     print(f"--- Iniciando prueba de carga de grafos desde: {graphs_dir} ---")
 

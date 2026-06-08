@@ -2,7 +2,14 @@
 @author: Enric Ferrera González
 """
 # Standard library imports
+import sys
 from pathlib import Path
+
+# Add src to path for imports
+current_dir = Path(__file__).resolve().parent
+if str(current_dir) not in sys.path:
+    sys.path.append(str(current_dir))
+
 import torch
 import pandas as pd
 import mlflow
@@ -10,10 +17,10 @@ import time
 import subprocess
 
 # Local application imports
-from fix_seed import fix_seeds
-from load_cls import load_cls_metadata, patient_dict_builder
-from cross_validation_graph import run_cross_validation_graph
-from calculate_class_weights import calculate_class_weights
+from utils.seed import fix_seeds
+from dataset.load_cls import load_cls_metadata, patient_dict_builder
+from training.cross_validation import run_cross_validation_graph
+from utils.class_weights import calculate_class_weights
 
 # ------ GLOBAL CONFIGURATION -------
 import os
@@ -24,8 +31,8 @@ fix_seeds(r_seed=r_seed)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Base paths
-BASE_GRAPH_DIR = Path(__file__).parent / "graph_creation"
-npz_path = Path(__file__).resolve().parent.parent / "Data" / "NEW_DATASET_cls_2048"
+BASE_GRAPH_DIR = Path(__file__).parent / "graphs"
+npz_path = Path(__file__).resolve().parent.parent / "data" / "NEW_DATASET_cls_2048"
 
 # Load metadata once for all experiments
 pat_nx_dict, pat_histodata_dict, features, affectation, hospitals, patients, slides, coords = load_cls_metadata(npz_path)
@@ -44,8 +51,8 @@ weights = calculate_class_weights(patient_dict)
 # EXPERIMENT LIST
 # Define the combinations of graphs and models you want to test.
 # ==============================================================================
-# Use an absolute path for the database to keep it inside the enric/ folder
-db_path = Path(__file__).resolve().parent / "mlruns.db"
+# Use an absolute path for the database to keep it inside the results/ folder
+db_path = Path(__file__).resolve().parent.parent / "results" / "mlruns.db"
 mlflow.set_tracking_uri(f"sqlite:///{db_path}")
 mlflow.set_experiment("PT1Diagnosis_GNN")
 
@@ -70,7 +77,7 @@ experimentos = [
 all_results = []
 
 # Generate environment file once per benchmark execution
-req_path = Path(__file__).parent / "requirements.txt"
+req_path = Path(__file__).parent.parent / "requirements.txt"
 try:
     # Try using uv to export requirements
     subprocess.run(["uv", "pip", "freeze"], stdout=open(req_path, "w"), check=True)
@@ -169,4 +176,4 @@ if all_results:
     print(df_results[existing_cols].to_string(index=False))
     
     print(f"\nTo view your MLflow dashboard, run:")
-    print(f"mlflow ui --backend-store-uri sqlite:///mlruns.db")
+    print(f"mlflow ui --backend-store-uri sqlite:///results/mlruns.db")

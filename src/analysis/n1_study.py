@@ -6,14 +6,14 @@ import torch
 
 # Assegurar que podem importar els mòduls locals
 current_dir = Path(__file__).resolve().parent
-if str(current_dir) not in sys.path:
-    sys.path.append(str(current_dir))
+if str(current_dir.parent) not in sys.path:
+    sys.path.append(str(current_dir.parent))
 
-from load_cls import load_cls_metadata, patient_dict_builder
+from dataset.load_cls import load_cls_metadata, patient_dict_builder
 
 def analyze_n1_patients():
     print("--- INICIANT ESTUDI DE PACIENTS N1 ---")
-    npz_path = current_dir.parent / "Data" / "NEW_DATASET_cls_2048"
+    npz_path = current_dir.parent.parent / "data" / "NEW_DATASET_cls_2048"
     
     if not npz_path.exists():
         print(f"ERROR: No s'ha trobat la carpeta de dades a {npz_path}")
@@ -79,7 +79,7 @@ def analyze_n1_patients():
         print(discordants[display_cols].head(15).to_string(index=False))
         
         # Guardar l'estudi complet
-        output_file = current_dir / "n1_discordant_analysis.csv"
+        output_file = current_dir.parent.parent / "results" / "n1_discordant_analysis.csv"
         df.sort_values(by='Infiltrated_Patches').to_csv(output_file, index=False)
         print(f"\nS'ha guardat un informe complet a: {output_file}")
     else:

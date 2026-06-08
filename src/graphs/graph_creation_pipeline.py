@@ -8,9 +8,9 @@ import torch
 import os
 
 # Local application imports
-from fix_seed import fix_seeds
-from load_cls import load_cls_metadata, patient_dict_builder
-from graph_creation import (
+from utils.seed import fix_seeds
+from dataset.load_cls import load_cls_metadata, patient_dict_builder
+from graphs import (
     radius_graph_creation_cpu, 
     euclidean_knn_graph_creation_cpu, 
     cosine_knn_graph_creation_cpu, 
@@ -26,7 +26,7 @@ r_seed = 123
 fix_seeds(r_seed=r_seed)
 
 # Base paths
-npz_path = Path(__file__).resolve().parents[2] / "Data" / "NEW_DATASET_cls_2048"
+npz_path = Path(__file__).resolve().parents[2] / "data" / "NEW_DATASET_cls_2048"
 
 def main():
     # Load metadata

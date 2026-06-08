@@ -78,11 +78,11 @@ def load_cls_metadata(npz_path):
     #################################################################################
 
     filename = "24_09_2025_pT1_CRC_CASOS_DEFINITIUS_AMB_ITEMS_HISTOLOGICS_fixed_N0s.xlsx"
-    # Try resolving relative to this file's directory first
-    histopath = Path(__file__).resolve().parent / filename
+    # Try resolving relative to project root (two levels up from src/dataset/)
+    histopath = Path(__file__).resolve().parent.parent.parent / filename
 
     if not histopath.exists():
-        # Final fallback: just the filename (legacy behavior)
+        # Fallback: Try current directory (legacy behavior)
         histopath = Path(filename)
 
     print(f"Loading metadata from: {histopath}")

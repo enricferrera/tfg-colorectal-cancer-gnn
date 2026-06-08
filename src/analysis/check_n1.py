@@ -1,9 +1,16 @@
+import sys
 import torch
 import numpy as np
 from pathlib import Path
-from load_cls import load_cls_metadata, patient_dict_builder
 
-npz_path = Path('Data/NEW_DATASET_cls_2048')
+# Add src to path for imports
+current_dir = Path(__file__).resolve().parent
+if str(current_dir.parent) not in sys.path:
+    sys.path.append(str(current_dir.parent))
+
+from dataset.load_cls import load_cls_metadata, patient_dict_builder
+
+npz_path = Path(__file__).resolve().parents[2] / "data" / "NEW_DATASET_cls_2048"
 results = load_cls_metadata(npz_path)
 patient_dict = patient_dict_builder(*results[2:], results[0], results[1])
 

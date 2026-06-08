@@ -28,7 +28,7 @@ def _gpu_fast_worker(npz_file, pat_nx_dict, pat_histodata_dict, k, graph_dir, de
     features_all = data['embeddingCLS']
     patients_all = data['patient_list']
     
-    # We use 'infiltrations' for affectation based on enric/load_cls.py
+    # We use 'infiltrations' for affectation based on dataset/load_cls.py
     # and other keys if needed, but for KNN features is the main one.
 
     unique_patients = np.unique(patients_all)

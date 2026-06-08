@@ -72,21 +72,21 @@ def plot_tsne_affectation(embeddings, affectations, save_dir, filename="tsne_aff
 if __name__ == "__main__":
     import sys
     current_dir = Path(__file__).resolve().parent
-    parent_dir = current_dir.parent
-    if str(parent_dir) not in sys.path:
-        sys.path.append(str(parent_dir))
+    src_dir = current_dir.parent
+    if str(src_dir) not in sys.path:
+        sys.path.append(str(src_dir))
     
     try:
-        from load_cls import load_cls_metadata, patient_dict_builder
-        from fix_seed import fix_seeds
+        from dataset.load_cls import load_cls_metadata, patient_dict_builder
+        from utils.seed import fix_seeds
     except ImportError as e:
         print(f"Error carregant mòduls: {e}")
         sys.exit(1)
 
     fix_seeds(r_seed=123)
 
-    npz_path = current_dir.parent.parent / "Data" / "NEW_DATASET_cls_2048"
-    results_root = current_dir / "results"
+    npz_path = src_dir.parent / "data" / "NEW_DATASET_cls_2048"
+    results_root = src_dir.parent / "results" / "visualization"
     v_num = get_next_version(results_root)
     v_tag = f"v{v_num}"
     v_folder = results_root / v_tag

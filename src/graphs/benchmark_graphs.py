@@ -10,15 +10,15 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.append(str(PROJECT_ROOT))
 
 # Import data loaders
-from load_cls import load_cls_metadata, patient_dict_builder
+from dataset.load_cls import load_cls_metadata, patient_dict_builder
 
 # Import the three versions to compare
-from graph_creation.knn.euclidean_knn_graph_creation import euclidean_knn_graph_creation as slow_parallel_fn
-from graph_creation.knn.euclidean_knn_graph_creation_gpu_fast import euclidean_knn_graph_creation_gpu_fast as gpu_fast_fn
+from graphs.knn.euclidean_knn_graph_creation import euclidean_knn_graph_creation as slow_parallel_fn
+from graphs.knn.euclidean_knn_graph_creation_gpu_fast import euclidean_knn_graph_creation_gpu_fast as gpu_fast_fn
 
 def run_benchmark():
     # --- 1. SETUP ---
-    data_path = PROJECT_ROOT / "Data" / "NEW_DATASET_cls_2048"
+    data_path = PROJECT_ROOT / "data" / "NEW_DATASET_cls_2048"
     if not data_path.exists():
         print(f"Error: Data path {data_path} not found.")
         return
