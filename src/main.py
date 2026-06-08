@@ -31,8 +31,8 @@ fix_seeds(r_seed=r_seed)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Base paths
-BASE_GRAPH_DIR = Path(__file__).parent / "graphs"
-npz_path = Path(__file__).resolve().parent.parent / "data" / "NEW_DATASET_cls_2048"
+BASE_GRAPH_DIR = current_dir.parent / "data" / "graphs"
+npz_path = current_dir.parent / "data" / "NEW_DATASET_cls_2048"
 
 # Load metadata once for all experiments
 pat_nx_dict, pat_histodata_dict, features, affectation, hospitals, patients, slides, coords = load_cls_metadata(npz_path)
@@ -77,7 +77,7 @@ experimentos = [
 all_results = []
 
 # Generate environment file once per benchmark execution
-req_path = Path(__file__).parent.parent / "requirements.txt"
+req_path = current_dir.parent / "results" / "requirements.txt"
 try:
     # Try using uv to export requirements
     subprocess.run(["uv", "pip", "freeze"], stdout=open(req_path, "w"), check=True)
@@ -123,7 +123,12 @@ for exp in experimentos:
                 k=exp.get('k'),
                 r=exp.get('r'),
                 knn_type=exp.get('knn_type', 'euclidean'),
-                patience=exp.get('patience', 10)
+                patience=exp.get('patience', 10),
+                lr=exp.get('lr', 1e-4),
+                weight_decay=exp.get('weight_decay', 1e-5),
+                dropout=exp.get('dropout', 0.0),
+                heads=exp.get('heads', 2),
+                pool_ratio=exp.get('pool_ratio', 0.5)
             )
             
             # --- NEW: Save the Champion Model to the Parent Run ---

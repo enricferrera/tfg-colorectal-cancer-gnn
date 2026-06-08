@@ -79,7 +79,7 @@ def cosine_knn_graph_creation_gpu_fast(npz_path, k=8, num_workers=2, max_files=N
     """
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
-    graph_dir = Path(__file__).parent / "graphs" / "cosine_gpu_fast" / f"k_{k}"
+    graph_dir = Path(__file__).resolve().parents[3] / "data" / "graphs" / "knn" / "cosine_gpu_fast" / f"k_{k}"
     graph_dir.mkdir(parents=True, exist_ok=True)
 
     print("Loading clinical metadata mapping...")

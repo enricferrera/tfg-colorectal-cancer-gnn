@@ -60,7 +60,7 @@ def radius_graph_creation(patient_dict, r=5, num_workers=2):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # --- 1. Setup the Output Directory ---
-    graph_dir = Path(__file__).parent / "graphs" / f"r_{r}"
+    graph_dir = Path(__file__).resolve().parents[3] / "data" / "graphs" / "radius" / f"r_{r}"
     graph_dir.mkdir(parents=True, exist_ok=True)
 
     start_time = time.time()

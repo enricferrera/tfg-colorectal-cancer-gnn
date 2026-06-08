@@ -12,7 +12,8 @@ from dataset.graph_loaders import GraphDataset
 def test_loading():
     # 1. Configuración de rutas
     # Ajusta esta ruta a donde realmente tengas los grafos (ej: KNN, Radius o Fully Connected)
-    graphs_dir = current_dir.parent / "src" / "graphs" / "fully_connected" / "graphs"
+    graphs_dir = current_dir.parent / "data" / "graphs" / "knn" / "cosine" / "k_8"
+    features_dir = current_dir.parent / "data" / "graphs" / "features"
 
     print(f"--- Iniciando prueba de carga de grafos desde: {graphs_dir} ---")
 
@@ -31,7 +32,7 @@ def test_loading():
     print(f"Se encontraron {len(patient_ids)} pacientes con grafos.")
 
     # 3. Instanciar el Dataset
-    dataset = GraphDataset(graphs_dir, patient_ids)
+    dataset = GraphDataset(graphs_dir, patient_ids, features_dir=features_dir)
 
     # 4. Probar el DataLoader de PyTorch Geometric
     # Este paso es CRÍTICO: verifica que el batching especial de grafos funciona

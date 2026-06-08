@@ -93,7 +93,7 @@ def euclidean_knn_graph_creation_gpu_fast(npz_path, k=8, num_workers=2, max_file
         print("WARNING: CUDA not available. Running 'Fast' logic on CPU cores.")
 
     # --- 1. Setup Output ---
-    graph_dir = Path(__file__).parent / "graphs" / "euclidean_gpu_fast" / f"k_{k}"
+    graph_dir = Path(__file__).resolve().parents[3] / "data" / "graphs" / "knn" / "euclidean_gpu_fast" / f"k_{k}"
     graph_dir.mkdir(parents=True, exist_ok=True)
 
     # --- 2. Load Metadata (Maps) only ---

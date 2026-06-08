@@ -37,7 +37,7 @@ def main():
     patient_dict = patient_dict_builder(features, affectation, hospitals, patients, slides, coords, pat_nx_dict, pat_histodata_dict)
 
     print('------ pre-stacking and saving features for speed and space...-------')
-    features_dir = Path(__file__).resolve().parent / "features"
+    features_dir = Path(__file__).resolve().parents[2] / "data" / "graphs" / "features"
     features_dir.mkdir(parents=True, exist_ok=True)
     
     for pat_id in patient_dict:

@@ -53,7 +53,7 @@ def euclidean_knn_graph_creation_cpu(patient_dict, k=8, num_workers=8):
     """
 
     # --- 1. Setup the Output Directory ---
-    graph_dir = Path(__file__).parent / "graphs" / "euclidean" / f"k_{k}"
+    graph_dir = Path(__file__).resolve().parents[3] / "data" / "graphs" / "knn" / "euclidean" / f"k_{k}"
     graph_dir.mkdir(parents=True, exist_ok=True)
     
     start_time = time.time()
