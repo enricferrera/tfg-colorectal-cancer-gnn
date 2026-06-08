@@ -19,7 +19,7 @@ The core research logic is contained within the `src/` directory, organized into
 A suite of graph generation modules optimized for histopathological spatial modeling:
 *   Connectivity: Support for Euclidean k-NN, Cosine-Similarity k-NN, Radius-based, and Fully Connected graphs.
 *   Optimization: GPU-accelerated versions for large-scale datasets and CPU-parallel alternatives for general compatibility.
-*   Analysis: Tools in `src/graphs/knn/distance_study/` for analyzing feature distributions to optimize graph hyperparameters.
+*   Analysis: Tools in `src/analysis/` for analyzing feature distributions to optimize graph hyperparameters.
 
 ### 3. Model Architectures (`src/models/`)
 *   `models_Graph.py`: Contains various GNN architectures:

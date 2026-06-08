@@ -1,16 +1,21 @@
-/Data/
-__pycache__/
+# Data and Graphs
+/data/
+*.pt
+
+# Metadata and IDEs
 .idea/
 .venv/
 .vscode/
+**/__pycache__/
+**/info/
+__pycache__/
+
+# Logs and Results
+mlruns/
+mlruns.db
+
+# Python artifacts
 *.pyc
 *.pyo
 *.pyd
 .ipynb_checkpoints/
-**/__pycache__/
-*.pt
-**/info/
-mlruns.db
-mlruns/
-mlruns.db
-mlruns/

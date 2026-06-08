@@ -1,2 +1,2 @@
-from .euclidean_knn_graph_creation import euclidean_knn_graph_creation
-from .cosine_knn_graph_creation import cosine_knn_graph_creation
+from .euclidean import euclidean_knn_graph_creation, euclidean_knn_graph_creation_cpu, euclidean_knn_graph_creation_gpu_fast
+from .cosine import cosine_knn_graph_creation, cosine_knn_graph_creation_cpu, cosine_knn_graph_creation_gpu_fast

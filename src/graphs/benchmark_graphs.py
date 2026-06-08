@@ -13,8 +13,8 @@ sys.path.append(str(PROJECT_ROOT))
 from dataset.load_cls import load_cls_metadata, patient_dict_builder
 
 # Import the three versions to compare
-from graphs.knn.euclidean_knn_graph_creation import euclidean_knn_graph_creation as slow_parallel_fn
-from graphs.knn.euclidean_knn_graph_creation_gpu_fast import euclidean_knn_graph_creation_gpu_fast as gpu_fast_fn
+from graphs.knn.euclidean import euclidean_knn_graph_creation as slow_parallel_fn
+from graphs.knn.euclidean import euclidean_knn_graph_creation_gpu_fast as gpu_fast_fn
 
 def run_benchmark():
     # --- 1. SETUP ---

@@ -8,12 +8,15 @@ import numpy as np
 import sys
 import time
 
-# Add project root to path
+# Add project root and src to path
 current_file = Path(__file__).resolve()
-root_path = current_file.parents[4] 
+root_path = current_file.parents[2] 
+src_path = current_file.parents[1]
 
 if str(root_path) not in sys.path:
     sys.path.append(str(root_path))
+if str(src_path) not in sys.path:
+    sys.path.append(str(src_path))
 
 try:
     from dataset.load_cls import load_cls_metadata, patient_dict_builder
