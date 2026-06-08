@@ -5,13 +5,12 @@ import pandas as pd
 import time
 import tempfile
 import copy
-from scipy import stats
 from torchinfo import summary as model_summary
 
 from sklearn.metrics import (
     recall_score, precision_score, f1_score, roc_auc_score, 
     balanced_accuracy_score, matthews_corrcoef, average_precision_score, 
-    confusion_matrix, roc_curve, precision_recall_curve
+    confusion_matrix
 )
 from sklearn.model_selection import StratifiedKFold
 import mlflow
@@ -20,10 +19,10 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 # Local application imports
-from enric.dataset import GraphDataset
-from enric.models import GCNWithAgg, GATWeight_batch
-from enric.utils import clean_vram, EarlyStopping
-from enric.training import train_loop_graph, val_loop_graph
+from dataset import GraphDataset
+from models import GCNWithAgg, GATWeight_batch
+from utils import clean_vram, EarlyStopping
+from training import train_loop_graph, val_loop_graph
 
 def run_cross_validation_graph(base_graphs_dir, graph_type, patient_list, label_list, weights, device, 
                                model_type='GCN', n_folds=10, epochs=30, batch_size=1, 

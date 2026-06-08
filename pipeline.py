@@ -4,14 +4,16 @@
 # Standard library imports
 from pathlib import Path
 import torch
-import numpy as np
 import pandas as pd
 import mlflow
 import time
 import subprocess
 
 # Local application imports
-from enric import fix_seeds, load_cls_metadata, patient_dict_builder, calculate_class_weights, run_cross_validation_graph
+from fix_seed import fix_seeds
+from load_cls import load_cls_metadata, patient_dict_builder
+from cross_validation_graph import run_cross_validation_graph
+from calculate_class_weights import calculate_class_weights
 
 # ------ GLOBAL CONFIGURATION -------
 import os
@@ -167,4 +169,4 @@ if all_results:
     print(df_results[existing_cols].to_string(index=False))
     
     print(f"\nTo view your MLflow dashboard, run:")
-    print(f"mlflow ui --backend-store-uri sqlite:///enric/mlruns.db")
+    print(f"mlflow ui --backend-store-uri sqlite:///mlruns.db")

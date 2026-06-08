@@ -12,5 +12,5 @@ __pycache__/
 **/info/
 mlruns.db
 mlruns/
-**/mlruns.db
-**/mlruns/
+mlruns.db
+mlruns/

@@ -82,10 +82,6 @@ def load_cls_metadata(npz_path):
     histopath = Path(__file__).resolve().parent / filename
 
     if not histopath.exists():
-        # Fallback: Try project root (one level up from 'enric/')
-        histopath = Path(__file__).resolve().parents[1] / filename
-    
-    if not histopath.exists():
         # Final fallback: just the filename (legacy behavior)
         histopath = Path(filename)
 

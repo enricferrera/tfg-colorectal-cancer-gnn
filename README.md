@@ -1,17 +1,78 @@
-## Pipelines pel diagnòstic de cancer digital. 
+# PT1Diagnosis: Graph Neural Network Research for pT1 Colorectal Cancer
 
-## Fitxers:
+## Project Overview
 
-* PipelineCLS.py : Càrrega de CLS, Intersecció amb metadates clíniques i train-val loops. 
-* PipelineImatges : Càrrega dels paths de les imatges, Intersecció amb metadates clíniques i train-val loops.
-* PipelineHomologia : Càrrega de CLS, Intersecció amb metadates clíniques.
-* PipelineOriginal: Còpia script inicial. No tocar. 
-* 24_09_2025_pT1_CRC_CASOS_DEFINITIUS_AMB_ITEMS_HISTOLOGICS_fixed_N0s.xls : Metadades dels pacients. 
-* requirements.txt : llibreries necessàries.
+This repository contains the primary experimental framework and research modules developed for my Bachelor's Thesis (TFG). The focus is the application of Graph Neural Networks (GNNs) to model the spatial microenvironment of pT1 Colorectal Cancer for metastasis prediction. The research aims to evaluate the diagnostic potential of graph-based representations of tissue structure.
 
-## Directoris:
+---
 
-* dataset : funcions/loaders per manipular les dades. És possible que els loaders s'hagin d'adaptar a la representació concreta (graphs, AE, VAE...). 
-* DocsSoA: documents d'estat de l'art i del projecte. 
-* models: scripts amb diferents models de deep learning. Attention models, AE models i Graph models. S'haurà d'adaptar o refer depenent dels objectius.
-* CodeTFGVAEs: Exemple d'utilització dels VAEs
+## Technical Architecture
+
+The core research logic is contained within the enric/ directory, organized into modular components for data processing, graph construction, and model training.
+
+### 1. Data Processing and Loading
+*   load_cls.py: Integrates deep learning embeddings (CLS tokens) with clinical metadata, managing patient-level diagnostic mapping (N0 vs. N1).
+*   dataset/graph_loaders.py: Implements a custom PyTorch Geometric dataset that handles pre-generated graph objects and dynamic feature linking.
+*   calculate_class_weights.py: Addresses class imbalance by calculating loss function weights based on patient distribution.
+
+### 2. Graph Construction (enric/graph_creation/)
+A suite of graph generation modules optimized for histopathological spatial modeling:
+*   Connectivity: Support for Euclidean k-NN, Cosine-Similarity k-NN, Radius-based, and Fully Connected graphs.
+*   Optimization: GPU-accelerated versions for large-scale datasets and CPU-parallel alternatives for general compatibility.
+*   Analysis: Tools in distance_study/ for analyzing feature distributions to optimize graph hyperparameters.
+
+### 3. Model Architectures (enric/models/)
+*   GATWeight_batch: Graph Attention Network that utilizes edge similarities as attributes to weight message passing.
+*   GCNWithAgg: Graph Convolutional Network with global mean pooling for patient-level representation.
+*   Hierarchical Pooling: Implementation of TopKPooling layers to capture multi-scale tissue structures.
+
+### 4. Experimental Pipeline
+*   pipeline.py: The central execution script for running multi-experiment GNN benchmarks.
+*   cross_validation_graph.py: Implements Stratified 10-Fold Cross-Validation with full MLflow integration.
+*   Training Loops: Modular implementations of training and validation logic with support for Mixed Precision (AMP).
+
+### 5. Advanced Visualization (enric/t_SNE/)
+*   t_SNE.py: Generates stratified t-SNE projections to visualize feature space clustering across tumor regions and patient categories.
+
+---
+
+## Usage Instructions
+
+### Environment Management
+This project uses uv for dependency management and environment isolation.
+
+```bash
+uv venv
+source .venv/bin/activate
+uv sync
+```
+
+### Typical Workflow
+1.  Graph Generation:
+    ```bash
+    python enric/graph_creation/graph_creation_pipeline.py
+    ```
+2.  Benchmarking:
+    ```bash
+    python enric/pipeline.py
+    ```
+3.  Experimental Analysis:
+    ```bash
+    mlflow ui --backend-store-uri sqlite:///enric/mlruns.db
+    ```
+
+---
+
+## Author
+
+Enric Ferrera González
+Institution: [Insert University Name]
+Date: June 2026
+
+---
+
+## License
+
+Copyright (c) 2026 Enric Ferrera González. All rights reserved.
+
+This source code is provided for viewing purposes only as part of a Bachelor's Thesis project. No part of this repository may be reproduced, distributed, or transmitted in any form or by any means, including photocopying, recording, or other electronic or mechanical methods, without the prior written permission of the author.

@@ -1,7 +1,6 @@
-import torch
 from pathlib import Path
 from torch_geometric.loader import DataLoader
-from enric.dataset import GraphDataset
+from dataset import GraphDataset
 
 def test_loading():
     # 1. Configuración de rutas
