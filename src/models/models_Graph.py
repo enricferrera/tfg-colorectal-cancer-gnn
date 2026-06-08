@@ -22,15 +22,16 @@ from torch_geometric.nn import GATConv, GCNConv, global_mean_pool, global_max_po
 
 # MODEL Graph Attention Network (GAT)
 class GATWeight_batch(torch.nn.Module):
-    def __init__(self, in_ch, hidden_ch, out_ch, heads=2, use_edge_attr=True):
+    def __init__(self, in_ch, hidden_ch, out_ch, heads=2, use_edge_attr=True, dropout=0.0):
         super().__init__()
         """ 
         Consulteu el help de GATConv per entendre els paràmetres d'entrada.
         """
         self.use_edge_attr = use_edge_attr
+        self.dropout = dropout
         edge_dim = 1 if use_edge_attr else None
-        self.gat1 = GATConv(in_ch, hidden_ch, heads=heads, concat=True, edge_dim=edge_dim)
-        self.gat2 = GATConv(hidden_ch*heads, hidden_ch, heads=1, concat=True, edge_dim=edge_dim)
+        self.gat1 = GATConv(in_ch, hidden_ch, heads=heads, concat=True, edge_dim=edge_dim, dropout=dropout)
+        self.gat2 = GATConv(hidden_ch*heads, hidden_ch, heads=1, concat=True, edge_dim=edge_dim, dropout=dropout)
         # The classifier receives features after pooling.
         # Since the last GAT layer (gat2) has hidden_ch output and 1 head (with concat=True), 
         # the dimension here is hidden_ch.
@@ -56,24 +57,26 @@ class GATWeight_batch(torch.nn.Module):
 
         # === Classification ===
         g = global_mean_pool(x2, batch_idx)
+        g = F.dropout(g, p=self.dropout, training=self.training)
 
         return self.classifier(g)
 
 
 # MODEL GAT amb Max Pooling jeràrquic
 class GATWithAggMaxPool(torch.nn.Module):
-    def __init__(self, in_ch, hidden_ch, out_ch, heads=2, use_edge_attr=True, pool_ratio=0.5):
+    def __init__(self, in_ch, hidden_ch, out_ch, heads=2, use_edge_attr=True, pool_ratio=0.5, dropout=0.0):
         super().__init__()
         """ 
         GAT amb dues capes de convolució d'atenció i dues capes de Max Pooling (TopKPooling).
         """
         self.use_edge_attr = use_edge_attr
+        self.dropout = dropout
         edge_dim = 1 if use_edge_attr else None
         
-        self.gat1 = GATConv(in_ch, hidden_ch, heads=heads, concat=True, edge_dim=edge_dim)
+        self.gat1 = GATConv(in_ch, hidden_ch, heads=heads, concat=True, edge_dim=edge_dim, dropout=dropout)
         self.pool1 = TopKPooling(hidden_ch * heads, ratio=pool_ratio)
         
-        self.gat2 = GATConv(hidden_ch * heads, hidden_ch, heads=1, concat=True, edge_dim=edge_dim)
+        self.gat2 = GATConv(hidden_ch * heads, hidden_ch, heads=1, concat=True, edge_dim=edge_dim, dropout=dropout)
         self.pool2 = TopKPooling(hidden_ch, ratio=pool_ratio)
         
         self.classifier = torch.nn.Linear(hidden_ch, out_ch)
@@ -108,22 +111,25 @@ class GATWithAggMaxPool(torch.nn.Module):
 
         # Agregació global (Max Pooling) i classificació
         g = global_mean_pool(x, batch_idx)
+        g = F.dropout(g, p=self.dropout, training=self.training)
         return self.classifier(g)
 
 
 # MODEL Graph Convolutional Network (GCN)
 class GCNWithAgg(torch.nn.Module):
-    def __init__(self, in_ch, hidden_ch, out_ch, use_edge_weight=True):
+    def __init__(self, in_ch, hidden_ch, out_ch, use_edge_weight=True, dropout=0.0):
         super().__init__()
         """ 
                 Consulteu el help de GCNConv per entendre els paràmetres d'entrada.
         """
         self.use_edge_weight = use_edge_weight
+        self.dropout = dropout
         self.gcn1 = GCNConv(in_ch, hidden_ch)
         self.gcn2 = GCNConv(hidden_ch, hidden_ch)
         self.lin = torch.nn.Sequential(
             torch.nn.Linear(hidden_ch, hidden_ch),
             torch.nn.ReLU(),
+            torch.nn.Dropout(p=dropout),
             torch.nn.LayerNorm(hidden_ch),
             torch.nn.Linear(hidden_ch, out_ch)
         )
@@ -149,12 +155,13 @@ class GCNWithAgg(torch.nn.Module):
 
 # MODEL GCN amb Max Pooling jeràrquic
 class GCNWithAggMaxPool(torch.nn.Module):
-    def __init__(self, in_ch, hidden_ch, out_ch, use_edge_weight=True, pool_ratio=0.5):
+    def __init__(self, in_ch, hidden_ch, out_ch, use_edge_weight=True, pool_ratio=0.5, dropout=0.0):
         super().__init__()
         """ 
         GCN amb dues capes de convolució i dues capes de Max Pooling (TopKPooling) per reduir el nombre de nodes.
         """
         self.use_edge_weight = use_edge_weight
+        self.dropout = dropout
         self.gcn1 = GCNConv(in_ch, hidden_ch)
         self.pool1 = TopKPooling(hidden_ch, ratio=pool_ratio)
         self.gcn2 = GCNConv(hidden_ch, hidden_ch)
@@ -163,6 +170,7 @@ class GCNWithAggMaxPool(torch.nn.Module):
         self.lin = torch.nn.Sequential(
             torch.nn.Linear(hidden_ch, hidden_ch),
             torch.nn.ReLU(),
+            torch.nn.Dropout(p=dropout),
             torch.nn.LayerNorm(hidden_ch),
             torch.nn.Linear(hidden_ch, out_ch)
         )

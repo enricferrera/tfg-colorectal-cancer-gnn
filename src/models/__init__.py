@@ -1,1 +1,6 @@
-from .models_Graph import GCNWithAgg, GATWeight_batch
+from .models_Graph import (
+    GCNWithAgg, 
+    GATWeight_batch, 
+    GCNWithAggMaxPool, 
+    GATWithAggMaxPool
+)

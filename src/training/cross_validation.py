@@ -20,16 +20,17 @@ import seaborn as sns
 
 # Local application imports
 from dataset import GraphDataset
-from models import GCNWithAgg, GATWeight_batch
+from models import GCNWithAgg, GATWeight_batch, GCNWithAggMaxPool, GATWithAggMaxPool
 from utils import clean_vram, EarlyStopping
 from training import train_loop_graph, val_loop_graph
 
 def run_cross_validation_graph(base_graphs_dir, graph_type, patient_list, label_list, weights, device, 
                                model_type='GCN', n_folds=10, epochs=30, batch_size=1, 
                                minibatch_size=10, hidden_ch=128, use_mixed_precision=True,
-                               k=None, r=None, knn_type='euclidean', patience=10):
+                               k=None, r=None, knn_type='euclidean', patience=10,
+                               lr=1e-4, weight_decay=1e-5, dropout=0.0, heads=2, pool_ratio=0.5):
     """
-
+    Runs Stratified K-Fold Cross Validation for Graph Neural Networks.
     """
     graphs_dir = base_graphs_dir / graph_type / "graphs"
     if graph_type == 'knn': graphs_dir = graphs_dir / knn_type
@@ -54,13 +55,31 @@ def run_cross_validation_graph(base_graphs_dir, graph_type, patient_list, label_
 
     print(f"\n>>> Running Experiment: {model_type} on {graph_type} graphs")
 
+    # Helper function to create model
+    def create_model():
+        if model_type.upper() == 'GCN':
+            return GCNWithAgg(in_ch=1536, hidden_ch=hidden_ch, out_ch=2, dropout=dropout)
+        elif model_type.upper() == 'GAT':
+            return GATWeight_batch(in_ch=1536, hidden_ch=hidden_ch, out_ch=2, heads=heads, dropout=dropout)
+        elif model_type.upper() == 'GCN_POOL':
+            return GCNWithAggMaxPool(in_ch=1536, hidden_ch=hidden_ch, out_ch=2, pool_ratio=pool_ratio, dropout=dropout)
+        elif model_type.upper() == 'GAT_POOL':
+            return GATWithAggMaxPool(in_ch=1536, hidden_ch=hidden_ch, out_ch=2, heads=heads, pool_ratio=pool_ratio, dropout=dropout)
+        else:
+            raise ValueError(f"Unknown model type: {model_type}")
+
     # --- 1. Model Complexity & GPU Stats ---
-    temp_model = GATWeight_batch(in_ch=1536, hidden_ch=hidden_ch, out_ch=2) if model_type.upper() == 'GAT' else GCNWithAgg(in_ch=1536, hidden_ch=hidden_ch, out_ch=2)
+    temp_model = create_model()
     m_info = model_summary(temp_model, verbose=0)
     mlflow.log_params({
         "trainable_params": m_info.trainable_params,
         "model_size_mb": m_info.total_params * 4 / (1024**2),
-        "gpu_name": torch.cuda.get_device_name(0) if torch.cuda.is_available() else "CPU"
+        "gpu_name": torch.cuda.get_device_name(0) if torch.cuda.is_available() else "CPU",
+        "lr": lr,
+        "weight_decay": weight_decay,
+        "dropout": dropout,
+        "heads": heads,
+        "pool_ratio": pool_ratio
     })
     del temp_model
 
@@ -73,15 +92,12 @@ def run_cross_validation_graph(base_graphs_dir, graph_type, patient_list, label_
             mlflow.log_param("fold_num", fold_num)
             
             train_pats, val_pats = patient_list[tr_idx], patient_list[va_idx]
-            train_loader = DataLoader(GraphDataset(graphs_dir, train_pats), batch_size=batch_size, shuffle=True)
-            val_loader = DataLoader(GraphDataset(graphs_dir, val_pats), batch_size=batch_size, shuffle=False)
+            train_loader = DataLoader(GraphDataset(graphs_dir, train_pats, features_dir=features_dir), batch_size=batch_size, shuffle=True)
+            val_loader = DataLoader(GraphDataset(graphs_dir, val_pats, features_dir=features_dir), batch_size=batch_size, shuffle=False)
 
-            if model_type.upper() == 'GCN':
-                model = GCNWithAgg(in_ch=1536, hidden_ch=hidden_ch, out_ch=2).to(device)
-            else:
-                model = GATWeight_batch(in_ch=1536, hidden_ch=hidden_ch, out_ch=2).to(device)
+            model = create_model().to(device)
 
-            optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+            optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
             loss_fn = torch.nn.CrossEntropyLoss(weight=weights.to(device))
             scaler = torch.amp.GradScaler('cuda', enabled=use_mixed_precision) if 'cuda' in str(device) else None
             early_stopping = EarlyStopping(patience=patience)
@@ -159,10 +175,7 @@ def run_cross_validation_graph(base_graphs_dir, graph_type, patient_list, label_
         mlflow.log_artifact(tmp.name, "patient_level_analysis.csv")
 
     # Reconstruct Champion model
-    if model_type.upper() == 'GCN':
-        champ_model = GCNWithAgg(in_ch=1536, hidden_ch=hidden_ch, out_ch=2).to(device)
-    else:
-        champ_model = GATWeight_batch(in_ch=1536, hidden_ch=hidden_ch, out_ch=2).to(device)
+    champ_model = create_model().to(device)
     champ_model.load_state_dict(champion_model_state)
 
     return results_summary, champ_model
