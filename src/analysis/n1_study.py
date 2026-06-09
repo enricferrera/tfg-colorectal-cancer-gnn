@@ -92,11 +92,5 @@ def analyze_n1_patients():
     else:
         print("No hi ha pacients discordants!")
 
-    print("\nPOSSIBLES CAUSES D'AQUESTA DISCORDÀNCIA:")
-    print("1. El tumor primari ja va ser extirpat anteriorment i les WSI actuals són de marges quirúrgics sans.")
-    print("2. Biaix de mostreig: la generació de patches (el pas previ a .npz) va ignorar la zona del tumor.")
-    print("3. La infiltració que va causar la N1 era microscòpica (micrometástasis) i no va caure dins de l'àrea escanejada.")
-    print("4. Les WSIs processades corresponen a ganglis negatius o teixit sa del pacient, no al tumor primari positiu.")
-
 if __name__ == "__main__":
     analyze_n1_patients()
