@@ -73,6 +73,13 @@ def analyze_n1_patients():
     print(f"Pacients N1 Concordants (tenen infiltració local): {len(concordants)}")
     print(f"Pacients N1 Discordants (tot el teixit analitzat és sa): {len(discordants)}")
     
+    print("\n--- PACIENTS CONCORDANTS ---")
+    if len(concordants) > 0:
+        display_cols = ['Patient_ID', 'Total_Patches', 'Infiltrated_Patches', 'Max_Affectation', 'Hospital']
+        print(concordants[display_cols].sort_values(by='Infiltrated_Patches', ascending=False).to_string(index=False))
+    else:
+        print("No hi ha pacients concordants!")
+
     print("\n--- PACIENTS DISCORDANTS (Mostrant els primers 15) ---")
     if len(discordants) > 0:
         display_cols = ['Patient_ID', 'Total_Patches', 'Max_Affectation', 'Hospital']
