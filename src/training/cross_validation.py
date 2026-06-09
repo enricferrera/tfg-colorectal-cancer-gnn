@@ -26,14 +26,16 @@ from training import train_loop_graph, val_loop_graph
 
 def run_cross_validation_graph(base_graphs_dir, graph_type, patient_list, label_list, weights, device, 
                                model_type='GCN', n_folds=10, epochs=30, batch_size=1, 
-                               minibatch_size=10, hidden_ch=128, use_mixed_precision=True,
+                               minibatch_multiplier=10, hidden_ch=128, use_mixed_precision=True,
                                k=None, r=None, knn_type='euclidean', patience=10,
-                               lr=1e-4, weight_decay=1e-5, dropout=0.0, heads=2, pool_ratio=0.5):
+                               lr=1e-4, weight_decay=1e-5, dropout=0.0, heads=2, pool_ratio=0.5,
+                               features_dir=None):
     """
     Runs Stratified K-Fold Cross Validation for Graph Neural Networks.
     """
-    graphs_dir = base_graphs_dir / graph_type / "graphs"
+    graphs_dir = base_graphs_dir / graph_type
     if graph_type == 'knn': graphs_dir = graphs_dir / knn_type
+    
     if k is not None: graphs_dir = graphs_dir / f"k_{k}"
     elif r is not None: graphs_dir = graphs_dir / f"r_{r}"
 
@@ -103,7 +105,7 @@ def run_cross_validation_graph(base_graphs_dir, graph_type, patient_list, label_
             early_stopping = EarlyStopping(patience=patience)
 
             for epoch in range(epochs):
-                train_loss = train_loop_graph(model, train_loader, optimizer, loss_fn, device, minibatch_size, scaler)
+                train_loss = train_loop_graph(model, train_loader, optimizer, loss_fn, device, minibatch_multiplier, scaler)
                 _, _, _, val_loss = val_loop_graph(model, val_loader, device, loss_fn)
                 mlflow.log_metric("train_loss", float(train_loss), step=epoch)
                 mlflow.log_metric("val_loss", float(val_loss), step=epoch)

@@ -200,7 +200,7 @@ class GCNWithAggMaxPool(torch.nn.Module):
             x, edges, _, batch_idx, _, _ = self.pool2(x, edges, None, batch_idx)
 
         # Agregació global (Max Pooling) i classificació
-        g = global_max_pool(x, batch_idx)
+        g = global_mean_pool(x, batch_idx)
         return self.lin(g)
 
 
