@@ -58,16 +58,67 @@ mlflow.set_experiment("PT1Diagnosis_GNN")
 
 experimentos = [
     {
-        "name": "GAT_KNN_k5_Cosine",
+        "name": "GAT_KNN_k10_Cosine",
         "model": "GAT",
         "graph_type": "knn",
         "knn_type": "cosine",
         "k": 10,
-        "hidden_ch": 512,
-        "epochs": 2,
+        "hidden_ch": 256,
+        "epochs": 100,
+        "use_amp": False,
+        "batch_size": 1,
+        "minibatch_multiplier": 8,
+        "heads": 4,
+        "lr": 1e-4,
+        "weight_decay": 1e-5,
+        "dropout": 0.1
+    },
+    {
+        "name": "GCN_POOL_Radius_r72",
+        "model": "GCN_POOL",
+        "graph_type": "radius",
+        "r": 72,
+        "hidden_ch": 256,
+        "epochs": 100,
         "use_amp": True,
         "batch_size": 1,
-        "minibatch_size": 15
+        "minibatch_multiplier": 16,
+        "pool_ratio": 0.5,
+        "lr": 5e-5,
+        "weight_decay": 1e-4,
+        "dropout": 0.2
+    },
+    {
+        "name": "GAT_POOL_KNN_k14_Euclidean",
+        "model": "GAT_POOL",
+        "graph_type": "knn",
+        "knn_type": "euclidean",
+        "k": 14,
+        "hidden_ch": 768,
+        "epochs": 100,
+        "use_amp": True,
+        "batch_size": 4,
+        "minibatch_multiplier": 4,
+        "heads": 8,
+        "pool_ratio": 0.3,
+        "lr": 1e-3,
+        "weight_decay": 1e-6,
+        "dropout": 0.3
+    },
+    {
+        "name": "GCN_KNN_k8_Euclidean_LargeBatch",
+        "model": "GCN",
+        "graph_type": "knn",
+        "knn_type": "euclidean",
+        "k": 8,
+        "hidden_ch": 128,
+        "epochs": 100,
+        "use_amp": True,
+        "batch_size": 8,
+        "minibatch_multiplier": 2,
+        "lr": 2e-4,
+        "weight_decay": 5e-5,
+        "dropout": 0.0
     },
 ]
 
@@ -119,7 +170,7 @@ for exp in experimentos:
                 hidden_ch=exp['hidden_ch'],
                 use_mixed_precision=exp['use_amp'],
                 batch_size=exp["batch_size"],
-                minibatch_size=exp["minibatch_size"],
+                minibatch_multiplier=exp["minibatch_multiplier"],
                 k=exp.get('k'),
                 r=exp.get('r'),
                 knn_type=exp.get('knn_type', 'euclidean'),
@@ -128,7 +179,8 @@ for exp in experimentos:
                 weight_decay=exp.get('weight_decay', 1e-5),
                 dropout=exp.get('dropout', 0.0),
                 heads=exp.get('heads', 2),
-                pool_ratio=exp.get('pool_ratio', 0.5)
+                pool_ratio=exp.get('pool_ratio', 0.5),
+                features_dir=BASE_GRAPH_DIR / "features"
             )
             
             # --- NEW: Save the Champion Model to the Parent Run ---
